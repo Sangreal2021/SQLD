@@ -1,0 +1,31 @@
+[SQLD 자격증 준비]
+
+1. 오라클DB 설치
+
+	(1) 설치 확인(cmd 명령어)
+		- sqlplus
+		- 사용자명 입력 : sys /as sysdba
+		- 비밀번호 : 1234
+
+2. 사용자 생성
+
+	(1) 생성(ID 앞에 'c##'을 붙여줘야 함!!)
+		- create user c##hiw15 identified by 1234;
+		
+		※ c##을 빼고 싶으면 아래 명령어 입력 후 새로 계정생성
+			- alter session set "_ORACLE_SCRIPT" = true;
+			
+		※ 계정 삭제
+			- drop user c##hiw15 cascade;
+		
+	(2) 권한부여
+		- grant connect, dba, resource to c##hiw15;
+		
+3. DBeaver에서 접속
+
+	(1) 접속 설정
+		- Database : xe
+		- Username : c##hiw
+		- Password : 1234
+
+	(2) 
