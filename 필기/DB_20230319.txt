@@ -1,0 +1,132 @@
+Homework
+	(1) merge 문 공부!
+
+
+===================================================================================================================	
+[day20]
+ 
+1. SQL 조건절(where)
+	조건절 : 조건을 제시하는 문장.
+		=> 참 or 거짓, 둘 중 하나의 결과
+		   ex) AGE < 10
+	> , < : 초과, 미만
+	>= , <= : 이상, 이하
+	= : 같다
+	!= , <> : 같지 않다
+	like '%검색어%' : 검색어가 들어간 데이터 
+		 '검색어%' : 검색어로 시작하는 데이터
+		 '%검색어' : 검색어로 끝나는 데이터
+		 '_검색어' : 검색어로 끝나는 데이터, 앞 글자가 1 글자.
+			ex) '%검색어1_검색어2%' : 검색어1 + 한글자 + 검색어2 패턴이 존재하는 데이터
+			
+
+2. insert
+	- 테이블은 바뀌므로 아래의 sql문을 더 많이 씀!!
+	insert into 테이블명 values(값1, 값2, 값3, ...);
+	insert into 테이블명(컬럼1, 컬럼2, ...) values (값1, 값2, ...);
+	
+	컬럼 부분을 작성하지 않는 경우 모든 값들을 순서에 맞춰서 넣어야 함..
+	컬럼을 작성한 경우 컬럼에 해당하는 값들만 순서에 맞춰서 넣는다.
+	
+
+3. update
+	update 테이블명 set 컬럼A = 값A, 컬럼B = 값B, ... where 조건절;
+	
+	※ 어떤 줄이 없으면 insert, 있으면 update (in Log data)
+	  => merge문을 찾아볼 것!! (https://ggmouse.tistory.com/130)
+	  
+	  
+4. delete
+	delete from 테이블명 where 조건절;
+	
+	
+5. CTAS(Create Table as Select) - ★★★★★
+	- 10억건 데이터 중 100만건만 필요, 모습(컬럼 유형 등)은 똑같이 만들고 싶을 때
+	기존에 만들어져 있는 테이블을 가지고 새로운 테이블을 만드는 작업
+	cf) 테이블 외형만 가져오고 싶을 때 -> where 1 = 0; 으로 false를 주면 됨.
+	
+6. alter : 변경
+	(1) 테이블 이름 변경
+		tip) tmp 테이블에 저장해놓고 나중에 이름만 변경..
+		alter table 예전이름 rename to 바꿀이름;
+	
+	(2) 테이블 컬럼 추가
+		alter table 테이블명 add 컬럼명, 타입;
+		
+	(3) 테이블 컬럼 변경
+		alter table 테이블명 modify 컬럼명, 타입;
+		alter table 테이블명 modify rename column 예전컬럼명 to 바꿀컬럼명;
+		
+	(4) 테이블 컬럼 삭제
+		alter table 테이블명 drop 컬럼명;
+		
+	(5) 테이블 삭제
+		drop table 테이블명;
+		
+		
+7. 컬럼 속성
+	(1) NOT NULL(무조건 값을 넣어야 함)
+		아무 것도 안 넣었을 때를 허락하지 않음!
+		
+	(2) default
+		아무 것도 안 넣었을 때 자동으로 입력되는 값.
+		
+		
+8. Primary Key(PK) : 중복성을 배제하기 위함.
+	일종의 제약조건이며, 데이터의 중복을 없애는 역할.
+	인덱스의 일종이고 값을 주고 조회하면 빠른 속도로 데이터를 처리.
+	
+	ex) alter table movie add constraint movie_pk primary key(movie_name);
+	
+
+9. Unique Key(UK) : PK와 NOT NULL 조건만 다름
+	일종의 제약조건이며, 데이터의 중복을 없애는 역할.
+	
+	
+10. alias : 별칭(숫자만 사용은 안됨)
+	테이블을 일컫는 다른 명칭.
+	테이블 이름이 너무 길어서 줄이고자 할 때 사용.
+	ex) zinv_svc_inv_spc zsis / zinv_svc_inv_spc as zsis(표준)
+		movie m / movie as m
+
+
+11. concatenation : 연결 - ★★★★★
+	※ 엑셀에서 셀들을 연결해서 원하는 값만 뽑을 때 사용!!!(구분자도 ..)
+	문자열이나 컬럼의 결과값을 연결할 때 사용.
+	1) in Oracle
+		컬럼1 || 컬럼2 -> 컬럼1컬럼2
+		컬럼1 || '-' || 컬럼2 -> 컬럼1-컬럼2
+		a.주민번호 = b.생년월일 || '-' || b.주번뒷자리
+		
+	2) in mySQL
+		concat(컬럼1, 컬럼2) -> 컬럼1컬럼2
+
+
+12. between ~ and ~ 
+	between A and B : A이상 B이하	20230319 < 20230319235959
+	date between	'20230319000000' 
+		 and		'20230319235959';
+	
+	※ 한글 비교도 됨(between '가' and '아')
+	
+	
+13. case when : 데이터를 읽어와서 앞(조건은 단 하나만)에가 참이면 뒤에를 선택함.
+	case when name = '라면' then '음식'
+		 when name = '벤츠' then '자동차'
+		 when name = '돈까스' then '음식'
+			  else '기타'
+	end as gubun
+	
+	
+14. function - ★★★★★
+	(1) single row function : 한 줄 입력, 한 줄 출력
+		1) numeric
+			abs(x), ceil(x), floor(x), round(x, y) : 반올림
+		
+		2) text
+			lower(str) : 소문자, upper(str) : 대문자, length(str) : 길이 구하기
+			substr(str, m, n) : 문자열 일부를 선택하기(m번째 부터 6자 가져오기)
+								(str, m) -> m번째 부터 끝까지 가져오기
+
+
+===================================================================================================================
