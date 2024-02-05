@@ -292,12 +292,107 @@ SELECT	ename,
 FROM emp1;
 
 
+-- 13. ROWNUM과 ROWID
+-- 	(1) ROWNUM
+--		- ORACLE의 select문 결과에 대해 논리적 일련번호를 부여
+--		- 조회되는 행 수를 제한할 때 많이 사용
+--		- 화면에 데이터를 출력할 때 부여되는 논리적 순번
+--	※ Inline View
+--		- SELECT문에서 FROM절에 사용되는 서브쿼리를 의미
+SELECT * FROM emp1
+WHERE rownum <= 5;
 
 
+-- 인라인 뷰를 사용하고 ROWNUM에 별칭을 사용해야 함
+SELECT * FROM (SELECT * FROM emp1) a;
+
+SELECT * FROM 
+	(SELECT ROWNUM list, empno, ename, mgr FROM emp1)
+WHERE list <= 5;
+
+SELECT * FROM
+	(SELECT ROWNUM list, ename FROM emp1)
+WHERE list BETWEEN 5 AND 10;
+
+-- SQL Server
+--SELECT * TOP(10) FROM emp1;
+
+-- MySQL
+--SELECT * FROM emp1 LIMIT 10;
+
+-- (2) ROWID
+--		- ORACLE에서 데이터를 구분할 수 있는 유일한 값
+--		- select 문으로 확인 가능
+--		- 데이터가 어떤 데이터 파일, 어느 블록에 저장되어 있는지 알 수 있음
+SELECT rowid, empno, ename
+FROM emp1;
 
 
+-- 14. WITH 구문
+--	- 서브쿼리를 사용해서 임시 테이블이나 뷰처럼 사용할 수 있는 구문
+--	- 서브쿼리 블록에 별칭을 지정할 수 있음
+--	- 옵티마이저는 SQL을 인라인 뷰나 임시 테이블로 판단함
+WITH viewData AS 
+	(SELECT * FROM EMP1
+		UNION ALL
+	SELECT * FROM EMP1
+	)
+SELECT * FROM viewData WHERE empno = 1000;
+
+-- Q. EMP 테이블에서 WITH 구문을 사용해서 부서번호가 30인 것의 임시 테이블을 만들고 조회하기.
+WITH W_EMP AS 
+	(SELECT * FROM emp1 WHERE deptno=30)
+SELECT * FROM W_EMP;
 
 
+-- 15. DCL(Data Control Language)
+--	(1) GRANT : 권한 부여
+--		"GRANT privileges ON object TO user;"
+--		1) Privileges(권한)
+--			- SELECT 
+--			- INSERT
+--			- UPDATE
+--			- DELETE
+--			- REFERENCES : 지정된 테이블을 참조하는 제약조건을 생성하는 권한
+--			- ALTER : 지정된 테이블에 대해 수정할 수 있는 권한
+--			- INDEX : 지정된 테이블에 대해 인덱스를 생성할 수 있는 권한
+--			- ALL : 테이블에 대한 모든 권한
+GRANT SELECT, INSERT, UPDATE, DELETE
+	ON emp1
+	TO hiw15;
+
+--	(2) WITH GRANT OPTION
+--		1) GRANT 옵션
+--			- WITH GRANT OPTION : 특정 사용자에게 권한을 부여할 수 있는 권한을 부여.
+--			- WITH ADMIN OPTION : 테이블에 대한 모든 권한을 부여
+--				A -> B, B -> C 이후 B권한 취소시 C의 권한은 유지됨
+GRANT SELECT, INSERT, UPDATE, DELETE 
+	ON emp1
+	TO hiw15 WITH GRANT OPTION;
+
+-- (2) REVOKE : 권한 회수
+--		"REVOKE privileges ON object TO user;"
+
+
+-- 16. TCL(Transaction Control Language)
+--	(1) COMMIT
+--		- INSERT, UPDATE, DELETE문으로 변경한 데이터를 DB에 반영
+--		- 변경 이전 데이터는 잃어버림
+--	※ Auto commit
+--		- SQLPLUS 프로그램을 정상적으로 종료시 자동 COMMIT 됨.
+--		- DDL 및 DCL을 사용하는 경우 자동 COMMIT 됨.
+--		- "set autocommit on;"을 SQLPLUS에서 실행하면 자동 COMMIT 됨.
+
+--	(2) ROLLBACK
+--		- ROLLBACK을 실행하면 데이터에 대한 변경 사용을 모두 취소하고 트랜잭션을 종료함.
+--		- INSERT, UPDATE, DELETE문의 작업을 모두 취소함. 단, 이전에 COMMIT한 곳까지만 복구.
+
+--	(3) SAVEPOINT(저장점)
+--		- 트랜잭선을 작게 분할하여 관리하는 것. SAVEPOINT를 사용하면 지정된 위치 이후의
+--			트랜잭션만 ROLLBACK 할 수 있음.
+--		- SAVEPOINT t1; (t1 : SAVEPOINT명)
+--		- 지정된 SAVEPOINT까지만 데이터 변경을 취소하고 싶은 경우, ROLLBACK TO t1; 을 실행.
+--		- ROLLBACK; 을 실행하면 SAVEPOINT와 관계없이 데이터의 모든 변경사항을 저장하지 않음.
 
 
 
