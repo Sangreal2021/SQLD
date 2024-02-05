@@ -23,7 +23,7 @@
 	(4) 설치 확인
 		docker ps -a
 	
-	(5) 도커 데스크탑에서 오라클19 버전의 Name 확인 (wizardly_noyce)
+	(5) 도커 데스크탑에서 오라클 12c 버전의 Name 확인 (wizardly_noyce)
 	
 	(6) 오라클 설치된 OS에 접근
 		docker exec -it wizardly_noyce bash
