@@ -46,13 +46,13 @@ SELECT deptno FROM emp ORDER BY DEPTNO;
 
 SELECT DISTINCT deptno FROM emp ORDER BY DEPTNO;
 
-SELECT ename AS "이름" FROM emp a WHERE a.EMPNO = 7369;
+SELECT ename AS "이름" FROM emp a WHERE a.EMPNO = 1000;
 
 
 -- 5. where 문
 SELECT * FROM emp1;
 
-SELECT * FROM emp WHERE empno >= 7569 AND sal >= 1500;
+SELECT * FROM emp WHERE empno >= 1000 AND sal >= 1500;
 
 SELECT * FROM emp WHERE ename LIKE '%N';
 
@@ -77,22 +77,23 @@ SELECT * FROM EMP WHERE MGR IS NOT NULL ;
 
 SELECT * FROM emp1;
 SELECT * FROM dept1;
---DROP TABLE DEPT1;
-INSERT INTO dept1 (DEPTNO, DNAME, LOC) VALUES (5, 'DEVELOPEMENT', 'SEOUL');
-UPDATE DEPT1 SET DEPTNO = 50 WHERE deptno = 5;
+DROP TABLE DEPT1;
+--INSERT INTO dept1 (DEPTNO, DNAME, LOC) VALUES (5, 'DEVELOPEMENT', 'SEOUL');
+--UPDATE DEPT1 SET DEPTNO = 50 WHERE deptno = 5;
 --DELETE FROM dept1 WHERE deptno = 60;
-INSERT INTO dept1 (DEPTNO, DNAME, LOC) VALUES (60, 'UNKNOWN', 'TOKYO');
-INSERT INTO DEPT1 (DEPTNO, LOC) VALUES (70, 'OSAKA');
-INSERT INTO emp1 (empno, ename, job, mgr, HIREDATE, sal, deptno)
-	VALUES (
-		1014,
-		'DANAKA',
-		'SALESMAN',
-		7190,
-		TO_TIMESTAMP('1989-12-22 00:00:00.000', 'YYYY-MM-DD HH24:MI:SS.FF'),
-		2000,
-		70
-);
+--INSERT INTO dept1 (DEPTNO, DNAME, LOC) VALUES (60, 'UNKNOWN', 'TOKYO');
+--INSERT INTO DEPT1 (DEPTNO, LOC) VALUES (70, 'OSAKA');
+--INSERT INTO emp1 (empno, ename, job, mgr, HIREDATE, sal, deptno)
+--	VALUES (
+--		1014,
+--		'DANAKA',
+--		'SALESMAN',
+--		7190,
+--		TO_TIMESTAMP('1989-12-22 00:00:00.000', 'YYYY-MM-DD HH24:MI:SS.FF'),
+--		2000,
+--		70
+--);
+
 -- ※ 날짜 관련
 --	(1) TO_DATE('1989-12-22', 'YYYY-MM-DD')
 --	(2) TO_TIMESTAMP('1989-12-22 00:00:00.000', 'YYYY-MM-DD HH24:MI:SS.FF')
@@ -151,11 +152,12 @@ FROM EMP1;
 -- 여기서 EMP1 테이블은 사원 정보를, DEPT1 테이블은 부서 정보를 담고 있습니다.
 -- EMP1 테이블의 모든 행은 결과에 포함됩니다. 즉, 모든 사원 정보가 쿼리 결과에 나타납니다.
 -- EMP1 테이블의 각 행에 대해, DEPTNO 컬럼을 사용하여 DEPT1 테이블의 DEPTNO 컬럼과 매칭을 시도합니다.
-SELECT E1.EMPNO,
-       E1.ENAME,
-       E1.JOB,
-       COALESCE(D1.DNAME, 'No Department') AS DEPARTMENT
-FROM EMP1 E1 LEFT JOIN DEPT1 D1 ON E1.DEPTNO = D1.DEPTNO;
+SELECT E1.empno,
+       E1.deptno,
+       E1.ename,
+       E1.job,
+       COALESCE(D1.dname, 'No Department') AS DEPARTMENT
+FROM EMP1 E1 LEFT JOIN DEPT1 D1 ON E1.deptno = D1.deptno;
 
 
 -- 7. GROUP BY
@@ -172,7 +174,7 @@ FROM emp1 GROUP BY deptno ORDER BY SUM(sal) DESC;
 SELECT	deptno, 
 		SUM(sal)
 FROM EMP GROUP BY deptno
-HAVING SUM(sal) > 10000;
+HAVING SUM(sal) > 5000;
 
 
 -- 9. 집계 함수
@@ -192,19 +194,29 @@ SELECT count(*) FROM emp1;
 SELECT count(MGR) FROM emp1;
 
 -- 부서별, 관리자별 급여평균 계산
-SELECT deptno, mgr, avg(sal)
-FROM emp1
-GROUP BY deptno, mgr ORDER BY avg(sal) desc;
+SELECT	deptno,
+		ROUND(avg(sal), 2) AS "avg"
+FROM	emp1
+GROUP BY deptno ORDER BY avg(sal) asc;
 
--- 직업별 급여합계 중 급여(sal)합계가 1000 이상인 직업(job)
-SELECT job, sum(sal)
-FROM emp1
+SELECT	mgr,
+		ROUND(avg(sal), 2) AS "avg"
+FROM	emp1
+GROUP BY mgr ORDER BY avg(sal) asc;
+
+SELECT	deptno, mgr, avg(sal)
+FROM	emp1
+GROUP BY deptno, mgr ORDER BY avg(sal) ASC;
+
+-- 직업별 급여합계 중 급여(sal)합계가 5000 이상인 직업(job)
+SELECT	job, sum(sal)
+FROM	emp1
 GROUP BY job HAVING sum(sal) >= 5000 ORDER BY sum(sal) desc;
 
 -- 사원번호 1000 ~ 1005 번의 부서별 급여합계
-SELECT deptno, sum(sal)
-FROM emp1
-WHERE empno BETWEEN 1000 AND 1005
+SELECT	deptno, sum(sal)
+FROM	emp1
+WHERE	empno BETWEEN 1000 AND 1005
 GROUP BY deptno;
 
 
@@ -222,7 +234,7 @@ GROUP BY deptno;
 --	(1) 문자열 함수
 --		- ASCII(문자) : 문자 혹은 숫자를 ASCII 코드값으로 변환
 --		- CHAR(ASCII 코드값) : ASCII 코드값을 문자롤 변환
---		- SUBSTR(문자열, m, n) : 문자열에서 m번째 위치부터 n개를 자른다(인덱스 규칙X)
+--		- SUBSTR(문자열, m, n) : 문자열에서 m번째 위치부터 n개를 뽑아서 출력(인덱스 규칙X)
 --		- CONCAT(문자열1, 문자열2) : 문자열1번과 문자열2번을 결합
 --			Oracle은 '||', MS-SQL은 '+' 를 사용할 수 있음
 --		- LOWER(문자열) : 영문자를 소문자로 변환
@@ -233,25 +245,37 @@ GROUP BY deptno;
 --		- TRIM(문자열) : 왼쪽 및 오른쪽에서 지정된 문자를 삭제(지정된 문자 생략시 공백을 삭제)
 SELECT	ASCII('a'),
 		SUBSTR('ABC', 2, 2),
+		CONCAT('Java', 'Script'),
 		LENGTH ('A BC'),
 		LTRIM(' ABC'),
 		LENGTH(LTRIM(' ABC'))
-FROM dual;
+FROM	dual;
+
+SELECT	'Java' || 'Script' AS "concat"
+FROM	DUAL;
 
 --	(2) 날짜형 함수
 --		- SYSDATE : 오늘의 날짜를 날짜 타입으로 알려줌
 --		- EXTRACT('YEAR'|'MONTH'|'DAY' from dual) : 오늘의 날짜를 날짜 타입으로 알려줌
 SELECT	SYSDATE,
 		EXTRACT(YEAR FROM sysdate) AS "년도",
+		EXTRACT(MONTH FROM sysdate) AS "월",
+		EXTRACT(DAY FROM sysdate) AS "일",
 		TO_CHAR(sysdate, 'YYYY-MM-DD') AS "날짜(파싱)"
-FROM DUAL;
+FROM	DUAL;
 
 SELECT EXTRACT(YEAR FROM SYSDATE) AS current_year FROM DUAL;
+
 SELECT 
     EXTRACT(MONTH FROM TIMESTAMP '2023-01-15 09:00:00') AS month,
     EXTRACT(DAY FROM TIMESTAMP '2023-01-15 09:00:00') AS day
 FROM DUAL;
-SELECT 
+
+-- INTERVAL '123:45' - 123시간 45분의 지속기간
+-- 즉, HOUR FROM INTERVAL '123:45' 는 5일 3시간 45분을 의미
+-- EXTRACT()로 시간을 추출하면 남는 3시간이 출력
+SELECT
+	EXTRACT(DAY FROM INTERVAL '123:45' HOUR TO MINUTE) AS days,
     EXTRACT(HOUR FROM INTERVAL '123:45' HOUR TO MINUTE) AS hours,
     EXTRACT(MINUTE FROM INTERVAL '123:45' HOUR TO MINUTE) AS minutes
 FROM DUAL;
@@ -259,13 +283,14 @@ FROM DUAL;
 -- (3) 숫자형 함수
 --		- ABS(숫자) : 절대값을 반환
 --		- SIGN(숫자) : 양수(1), 음수(-1), 0(0)을 구별
---		- MOD(숫자1, 숫자2) : 숫자1을 숫자2로 나누어 나머지를 계산(%를 사용해도 됨)
---		- CEIL(숫자) / CEILING(숫자) : 올림, 숫자보다 크거나 같은 최소의 정수 반환
+--		- MOD(숫자1, 숫자2) : 숫자1을 숫자2로 나누어 나머지를 계산
+--		- CEIL(숫자) or CEILING(숫자) : 올림, 숫자보다 크거나 같은 최소의 정수 반환
 --		- FLOOR(숫자) : 내림, 숫자보다 작거나 같은 최대의 정수 반환
---		- ROUND(숫자, m) : 소수점 m자리에서 반올림(m의 기본값은 0)
---		- TRUNC(숫자, m) : 소수점 m자리에서 절삭(m의 기본값은 0)
+--		- ROUND(숫자, m) : 소수점 m자리가 되도록 반올림(m의 기본값은 0)
+--		- TRUNC(숫자, m) : 소수점 m자리가 되도록 절삭(m의 기본값은 0)
 SELECT	ABS(-1),
-		SIGN(10),  
+		SIGN(10),
+		(5 / 2),
 		MOD(5, 2),
 		CEIL(10.9),
 		FLOOR(10.1),
@@ -279,18 +304,18 @@ FROM DUAL;
 SELECT DECODE(empno, 1000, 'KING', 'SLAVE') 
 FROM emp1;
 
--- (2) CASE() : IF~THEN ... ELSE-END
+--	(2) CASE() : IF~THEN ... ELSE-END
 SELECT * FROM emp1;
 
 SELECT	ename,
 		empno,
 		CASE
-			WHEN empno = 1000 THEN 'EMPEROR'
-			WHEN empno between 1001 AND 1005 THEN 'ROYAL'
+			WHEN empno = 1000 THEN 'KING'
+			WHEN empno BETWEEN 1001 AND 1003 THEN 'ROYAL'
 			ELSE 'SLAVE'
-		END AS "계급"
-FROM emp1;
-
+		END AS "CLASS"
+FROM 	emp1;
+		
 
 -- 13. ROWNUM과 ROWID
 -- 	(1) ROWNUM
@@ -311,7 +336,7 @@ SELECT * FROM
 WHERE list <= 5;
 
 SELECT * FROM
-	(SELECT ROWNUM list, ename FROM emp1)
+	(SELECT ROWNUM list, empno, ename, mgr FROM emp1)
 WHERE list BETWEEN 5 AND 10;
 
 -- SQL Server
@@ -332,7 +357,7 @@ FROM emp1;
 --	- 서브쿼리를 사용해서 임시 테이블이나 뷰처럼 사용할 수 있는 구문
 --	- 서브쿼리 블록에 별칭을 지정할 수 있음
 --	- 옵티마이저는 SQL을 인라인 뷰나 임시 테이블로 판단함
-WITH viewData AS 
+WITH viewData AS
 	(SELECT * FROM EMP1
 		UNION ALL
 	SELECT * FROM EMP1
@@ -340,7 +365,7 @@ WITH viewData AS
 SELECT * FROM viewData WHERE empno = 1000;
 
 -- Q. EMP 테이블에서 WITH 구문을 사용해서 부서번호가 30인 것의 임시 테이블을 만들고 조회하기.
-WITH W_EMP AS 
+WITH W_EMP AS
 	(SELECT * FROM emp1 WHERE deptno=30)
 SELECT * FROM W_EMP;
 
