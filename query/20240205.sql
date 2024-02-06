@@ -1,4 +1,11 @@
--- 1. View
+-- 1. 뷰(View) 생성 및 삭제
+--	- 뷰란 테이블로부터 유도된 가상 테이블.
+--	- 실제 데이터를 가지고 있지 않고, 테이블을 참조해서 원하는 칼럼만 조회 가능
+--	<특징>
+--		- 참조한 테이블이 변경되면 뷰도 변경
+--		- 뷰에 대한 입력, 수정, 삭제에는 제약 있음
+--		- 보안성 향상
+--		- 변경 불가, 변경하려면 삭제 후 재생성해야 함
 
 CREATE VIEW T_EMP AS SELECT * FROM emp;
 
@@ -7,18 +14,19 @@ SELECT * FROM T_EMP;
 DROP VIEW T_EMP;
 
 
+
 -- 2. 테이블 연습 준비
---테이블 구조 및 데이터 복사하기
---CREATE TABLE 신규테이블명 AS SELECT * FROM 복사할테이블명 [WHERE]
+--	(1) 테이블 구조 및 데이터 복사하기
+--		CREATE TABLE 신규테이블명 AS SELECT * FROM 복사할테이블명 [WHERE]
 
---테이블 구조만 복사하기
---CREATE TABLE 신규테이블명 AS SELECT * FROM 복사할테이블명 WHERE 1=2
+--	(2) 테이블 구조만 복사하기
+--		CREATE TABLE 신규테이블명 AS SELECT * FROM 복사할테이블명 WHERE 1=2
 
---테이블이 존재할경우, 데이터만 복사하기(구조가 같은경우)
---INSERT INTO 복사대상테이블명 SELECT * FROM 원본테이블명 [WHERE]
+--	(3) 테이블이 존재할경우, 데이터만 복사하기(구조가 같은경우)
+--		INSERT INTO 복사대상테이블명 SELECT * FROM 원본테이블명 [WHERE]
 
---테이블이 존재할경우, 데이터만 복사하기(구조가 다를경우)
---INSERT INTO 복사대상테이블명 (COL1, COL2) SELECT COL1, COL2 FROM 원본테이블명 [WHERE]
+--	(4) 테이블이 존재할경우, 데이터만 복사하기(구조가 다를경우)
+--		INSERT INTO 복사대상테이블명 (COL1, COL2) SELECT COL1, COL2 FROM 원본테이블명 [WHERE]
 
 DROP TABLE dept1;
 DROP TABLE emp1;
@@ -30,6 +38,7 @@ SELECT * FROM dept1;
 SELECT * FROM emp1;
 
 
+
 -- 3. 최대 저장할 수 있는 공간
 -- 	(1) DELETE vs TRUNCATE
 --		- DELETE : 테이블 용량은 감소하지 않음
@@ -39,50 +48,79 @@ SELECT TABLE_NAME, MAX_EXTENTS
 FROM USER_TABLES;
 
 
+
 -- 4. Distinct, Alias
 -- 	(1) Distinct : 중복된 데이트를 한 번만 조회
 --	(2) Alias : 별칭
-SELECT deptno FROM emp ORDER BY DEPTNO;
+SELECT deptno, ename FROM emp ORDER BY deptno;
 
-SELECT DISTINCT deptno FROM emp ORDER BY DEPTNO;
+SELECT DISTINCT deptno FROM emp ORDER BY deptno;
 
-SELECT ename AS "이름" FROM emp a WHERE a.EMPNO = 1000;
+SELECT	empno AS "사번", ename AS "이름"
+FROM	emp a
+WHERE	a.empno BETWEEN 1000 AND 1005;
+
 
 
 -- 5. where 문
+--	(1) BETWEEN a AND b : a 이상, b 이하
+--	(2) NOT BETWEEN a AND b : a 미만, b 초과
+--	(3) IN (a, b) : a 또는 b
+--	(4) NOT IN(a, b) : a, b 가 아닌 것
+--	(5) IN NULL / IS NOT NULL
 SELECT * FROM emp1;
 
-SELECT * FROM emp WHERE empno >= 1000 AND sal >= 1500;
+SELECT * FROM emp1 WHERE empno >= 1000 AND sal >= 1500;
 
-SELECT * FROM emp WHERE ename LIKE '%N';
+SELECT * FROM emp1 WHERE ename LIKE '%N';
 
-SELECT * FROM EMP WHERE sal BETWEEN 1000 AND 2000;
+SELECT * FROM emp1 WHERE sal BETWEEN 1000 AND 2000;
 
--- BETWEEN a AND b : a 이상, b 이하
--- NOT BETWEEN a AND b : a 미만, b 초과
--- IN (a, b) : a 또는 b
-SELECT * FROM emp WHERE job IN ('CLERK', 'MANAGER');
+SELECT * FROM emp1 WHERE job IN ('CLERK', 'MANAGER');
 
-SELECT * FROM EMP WHERE (job, ename) IN (('CLERK','SMITH'), ('MANAGER','BLAKE'));
+SELECT * FROM emp1 WHERE (job, ename) IN (('CLERK','SMITH'), ('MANAGER','BLAKE'));
 
+SELECT * FROM emp1 WHERE (job, ename) NOT IN (('CLERK','SMITH'), ('MANAGER','BLAKE'));
+
+-- ※ 기타 범위 조회
+--	(1) 1000 초과 2000 이하
+SELECT * FROM emp1 WHERE sal > 1000 AND sal <= 2000;
+
+--	(2) 1000 미만 2000 이상
+SELECT * FROM emp1 WHERE sal < 1000 OR sal >= 2000;
+
+
+
+-- ※ NULL 특징
+--	- 모르는 값
+--	- 값의 부재
+--	- NULL + (숫자 or 날짜) => NULL
+--	- NULL 과 어떤 값을 비교 => '알수 없음' 반환
+
+-- ※ 날짜 관련
+--	(1) TO_DATE('1989-12-22', 'YYYY-MM-DD')
+--	(2) TO_TIMESTAMP('1989-12-22 00:00:00.000', 'YYYY-MM-DD HH24:MI:SS.FF')
+--	(3) SYSDATE : 초 단위까지
+--	(4) CURRENT_TIMESTAMP : 밀리초 단위까지
 
 -- 6. NULL 관련 함수
 -- 	(1) NVL 함수 : NVL(MGR, 0) - MGR 칼럼이 NULL이면 0으로 바꿈
 --	(2) NVL2 함수 : NVL2(MGR, 1, 0) - MGR 칼럼이 NULL이 아니면 1, NULL이면 0 반환
 --	(3) NULLIF 함수 : NULLIF(exp1, exp2) - exp1과 exp2가 같으면 NULL, 다르면 exp1 반환
---	(4) COALESCE : COALESCE(exp1, exp2, ...) - exp1이 NULL이 아니면 exp1의 값을,
---			그렇지 않으면 그 뒤의 값의 NULL 여부를 판단하여 값을 반환
-SELECT * FROM EMP WHERE MGR IS NULL ;
-SELECT * FROM EMP WHERE MGR IS NOT NULL ;
+--	(4) COALESCE : COALESCE(exp1, exp2, ...)
+--			인자들을 순차적으로 조회하여 최초로 NULL이 아닌 값을 찾으면 해당 값을 반환,
+--			전부 NULL이면 NULL 반환.
+SELECT * FROM emp1 WHERE MGR IS NULL ;
+SELECT * FROM emp1 WHERE MGR IS NOT NULL ;
 
 SELECT * FROM emp1;
 SELECT * FROM dept1;
-DROP TABLE DEPT1;
+DROP TABLE dept1;
 --INSERT INTO dept1 (DEPTNO, DNAME, LOC) VALUES (5, 'DEVELOPEMENT', 'SEOUL');
 --UPDATE DEPT1 SET DEPTNO = 50 WHERE deptno = 5;
 --DELETE FROM dept1 WHERE deptno = 60;
 --INSERT INTO dept1 (DEPTNO, DNAME, LOC) VALUES (60, 'UNKNOWN', 'TOKYO');
---INSERT INTO DEPT1 (DEPTNO, LOC) VALUES (70, 'OSAKA');
+--INSERT INTO dept1 (DEPTNO, LOC) VALUES (70, 'OSAKA');
 --INSERT INTO emp1 (empno, ename, job, mgr, HIREDATE, sal, deptno)
 --	VALUES (
 --		1014,
@@ -94,22 +132,15 @@ DROP TABLE DEPT1;
 --		70
 --);
 
--- ※ 날짜 관련
---	(1) TO_DATE('1989-12-22', 'YYYY-MM-DD')
---	(2) TO_TIMESTAMP('1989-12-22 00:00:00.000', 'YYYY-MM-DD HH24:MI:SS.FF')
---	(3) SYSDATE : 초 단위까지
---	(4) CURRENT_TIMESTAMP : 밀리초 단위까지
-
-
--- 1) NVL(MGR, 0) : MGR 컬럼이 NULL이면 0으로 바꿈
+--	(1) NVL(MGR, 0) : MGR 컬럼이 NULL이면 0으로 바꿈
 SELECT NVL(MGR, 0) FROM EMP WHERE EMPNO = 1001;
 SELECT NVL(MGR, 0) FROM EMP WHERE EMPNO = 1000;
 
--- 2) NVL2(MGR, 1, 0) : MGR 컬럼이 NULL이 아니면 1을, NULL이면 0을 반환
+--	(2) NVL2(MGR, 1, 0) : MGR 컬럼이 NULL이 아니면 1을, NULL이면 0을 반환
 SELECT NVL2(MGR, 1, 0) FROM EMP WHERE EMPNO = 1001;
 SELECT NVL2(MGR, 1, 0) FROM EMP WHERE EMPNO = 1000;
 
--- 3) NULLIF(exp1, exp2) : exp1 = exp2이면 NULL을 exp1 != exp2이면 exp1을 반환
+--	(3) NULLIF(exp1, exp2) : exp1 = exp2이면 NULL을 exp1 != exp2이면 exp1을 반환
 -- 이 함수는 데이터 변환 또는 데이터 정제 과정에서 유용하게 사용됩니다.
 -- 예를 들어, 특정 조건에서 값이 유효하지 않거나 기대하지 않는 경우에 NULL 값을 할당하여 이후 처리에서 제외시킬 수 있음.
 SELECT * FROM dept1;
@@ -126,7 +157,7 @@ SELECT DEPTNO,
        LOC
 FROM DEPT1;
 
--- 4) COALESCE(exp1, exp2, exp3, ...)
+--	(4) COALESCE(exp1, exp2, exp3, ...)
 -- 입력된 인자 목록 중에서 첫 번째 NULL이 아닌 값을 반환합니다.
 -- COALESCE 함수가 리스트의 모든 값을 순차적으로 검사하고, 모든 값이 NULL이면 리스트의 마지막 값을 반환한다는 것을 의미.
 --	인자 전부 NULL이면 NULL 값을 반환
@@ -160,6 +191,7 @@ SELECT E1.empno,
 FROM EMP1 E1 LEFT JOIN DEPT1 D1 ON E1.deptno = D1.deptno;
 
 
+
 -- 7. GROUP BY
 --	: 소규모 행을 그룹화하여 합계, 평균, 최대값, 초소값 등을 계산
 SELECT * FROM EMP1;
@@ -167,14 +199,18 @@ SELECT * FROM DEPT1;
 
 SELECT	deptno,
 		SUM(SAL)
-FROM emp1 GROUP BY deptno ORDER BY SUM(sal) DESC;
+FROM emp1 GROUP BY deptno ORDER BY deptno;
+
+
 
 -- 8. HAVING문
 --	: GROUP BY에 조건절을 사용하기 위한 조건문
-SELECT	deptno, 
-		SUM(sal)
-FROM EMP GROUP BY deptno
-HAVING SUM(sal) > 5000;
+SELECT		deptno, 
+			SUM(sal)
+FROM		emp1
+GROUP BY	deptno
+HAVING		SUM(sal) > 5000 ORDER BY deptno;
+
 
 
 -- 9. 집계 함수
@@ -194,19 +230,19 @@ SELECT count(*) FROM emp1;
 SELECT count(MGR) FROM emp1;
 
 -- 부서별, 관리자별 급여평균 계산
+SELECT	deptno, mgr, avg(sal)
+FROM	emp1
+GROUP BY deptno, mgr ORDER BY avg(sal) ASC;
+
 SELECT	deptno,
 		ROUND(avg(sal), 2) AS "avg"
 FROM	emp1
 GROUP BY deptno ORDER BY avg(sal) asc;
 
-SELECT	mgr,
+SELECT	job,
 		ROUND(avg(sal), 2) AS "avg"
 FROM	emp1
-GROUP BY mgr ORDER BY avg(sal) asc;
-
-SELECT	deptno, mgr, avg(sal)
-FROM	emp1
-GROUP BY deptno, mgr ORDER BY avg(sal) ASC;
+GROUP BY job ORDER BY avg(sal) asc;
 
 -- 직업별 급여합계 중 급여(sal)합계가 5000 이상인 직업(job)
 SELECT	job, sum(sal)
@@ -220,14 +256,16 @@ WHERE	empno BETWEEN 1000 AND 1005
 GROUP BY deptno;
 
 
+
 -- 10. 명시적 형변환과 암시적 형변환
 --	- 명시적 형변환 : SQL 개발자가 형변환 함수를 사용해서 형변환을 수행하는 것.
--- 	- 암시작 형변환 : sQL 개발자가 형변환을 수행하지 않았을 경우 DB 관리 시스템이
+-- 	- 암시작 형변환 : SQL 개발자가 형변환을 수행하지 않았을 경우 DB 관리 시스템이
 --		내부적으로 형변환을 수행.
 -- 형변환 함수
 -- 	(1) TO_NUMBER(문자열) : 문자열을 숫자로 변환
 --	(2) TO_CHAR(숫자 혹은 날짜.[FORMAT]) : 숫자 혹은 날짜를 지정된 FORMAT의 문자로 변환
 --	(3) TO_DATE(문자열, FORMAT) : 문자열을 지정된 FORMAT의 날짜형으로 변환
+
 
 
 -- 11. 내장형 함수
@@ -243,12 +281,12 @@ GROUP BY deptno;
 --		- LTRIM(문자열, 지정문자) : 왼쪽에서 지정된 문자를 삭제(지정된 문자 생략시 공백을 삭제)
 --		- RTRIM(문자열) : 오른쪽에서 지정된 문자를 삭제(지정된 문자 생략시 공백을 삭제)
 --		- TRIM(문자열) : 왼쪽 및 오른쪽에서 지정된 문자를 삭제(지정된 문자 생략시 공백을 삭제)
-SELECT	ASCII('a'),
-		SUBSTR('ABC', 2, 2),
-		CONCAT('Java', 'Script'),
-		LENGTH ('A BC'),
-		LTRIM(' ABC'),
-		LENGTH(LTRIM(' ABC'))
+SELECT	ASCII('a') AS ascii,
+		SUBSTR('ABC', 2, 2) AS substr,
+		CONCAT('Java', 'Script') AS concat,
+		LENGTH ('A BC') AS length,
+		LTRIM(' ABC') AS ltrim,
+		LENGTH(LTRIM(' ABC')) AS length_L
 FROM	dual;
 
 SELECT	'Java' || 'Script' AS "concat"
@@ -256,28 +294,30 @@ FROM	DUAL;
 
 --	(2) 날짜형 함수
 --		- SYSDATE : 오늘의 날짜를 날짜 타입으로 알려줌
---		- EXTRACT('YEAR'|'MONTH'|'DAY' from dual) : 오늘의 날짜를 날짜 타입으로 알려줌
-SELECT	SYSDATE,
-		EXTRACT(YEAR FROM sysdate) AS "년도",
-		EXTRACT(MONTH FROM sysdate) AS "월",
-		EXTRACT(DAY FROM sysdate) AS "일",
-		TO_CHAR(sysdate, 'YYYY-MM-DD') AS "날짜(파싱)"
+--		- EXTRACT('YEAR' or 'MONTH' or 'DAY' from dual) : 오늘의 날짜를 날짜 타입으로 알려줌
+--SELECT SESSIONTIMEZONE FROM DUAL;
+SELECT	CURRENT_TIMESTAMP AS "현재시간",
+		CONCAT(EXTRACT(YEAR FROM sysdate), ' 년') AS "년",
+		CONCAT(EXTRACT(MONTH FROM sysdate), ' 월') AS "월",
+		CONCAT(EXTRACT(DAY FROM sysdate), ' 일') AS "일",
+		TO_CHAR(CURRENT_TIMESTAMP, 'YYYY"년" MM"월" DD"일" HH24"시" MI"분" ss"초"') AS "날짜(파싱)"
 FROM	DUAL;
 
-SELECT EXTRACT(YEAR FROM SYSDATE) AS current_year FROM DUAL;
+SELECT EXTRACT(YEAR FROM SYSDATE,) AS current_year FROM DUAL;
 
 SELECT 
-    EXTRACT(MONTH FROM TIMESTAMP '2023-01-15 09:00:00') AS month,
-    EXTRACT(DAY FROM TIMESTAMP '2023-01-15 09:00:00') AS day
+    CONCAT(EXTRACT(YEAR FROM TIMESTAMP '2023-01-15 09:00:00'), ' 년') AS year,
+    CONCAT(EXTRACT(MONTH FROM TIMESTAMP '2023-01-15 09:00:00'), ' 월') AS month,
+    CONCAT(EXTRACT(DAY FROM TIMESTAMP '2023-01-15 09:00:00'), ' 일') AS day
 FROM DUAL;
 
 -- INTERVAL '123:45' - 123시간 45분의 지속기간
 -- 즉, HOUR FROM INTERVAL '123:45' 는 5일 3시간 45분을 의미
 -- EXTRACT()로 시간을 추출하면 남는 3시간이 출력
 SELECT
-	EXTRACT(DAY FROM INTERVAL '123:45' HOUR TO MINUTE) AS days,
-    EXTRACT(HOUR FROM INTERVAL '123:45' HOUR TO MINUTE) AS hours,
-    EXTRACT(MINUTE FROM INTERVAL '123:45' HOUR TO MINUTE) AS minutes
+	CONCAT(EXTRACT(DAY FROM INTERVAL '123:45' HOUR TO MINUTE), ' 일') AS days,
+    CONCAT(EXTRACT(HOUR FROM INTERVAL '123:45' HOUR TO MINUTE), ' 시간') AS hours,
+    CONCAT(EXTRACT(MINUTE FROM INTERVAL '123:45' HOUR TO MINUTE), ' 분') AS minutes
 FROM DUAL;
 
 -- (3) 숫자형 함수
@@ -299,29 +339,34 @@ SELECT	ABS(-1),
 FROM DUAL;
 
 
+
 -- 12. DECODE와 CASE 문
 --	(1) DECODE(exp1, 1000, 'TRUE', 'FALSE') : exp1 = 1000이면 TRUE 반환, exp1 != 1000이면 FALSE 반환
-SELECT DECODE(empno, 1000, 'KING', 'SLAVE') 
-FROM emp1;
+SELECT	DECODE(empno, 1000, 'KING', 'SLAVE') AS class
+FROM	emp1;
 
 --	(2) CASE() : IF~THEN ... ELSE-END
 SELECT * FROM emp1;
 
 SELECT	ename,
 		empno,
+		sal,
 		CASE
-			WHEN empno = 1000 THEN 'KING'
+			WHEN empno = 1000 THEN 'EMPEROR'
 			WHEN empno BETWEEN 1001 AND 1003 THEN 'ROYAL'
+			WHEN sal >= 3000 THEN 'RICH'
 			ELSE 'SLAVE'
 		END AS "CLASS"
 FROM 	emp1;
-		
+
+
 
 -- 13. ROWNUM과 ROWID
 -- 	(1) ROWNUM
 --		- ORACLE의 select문 결과에 대해 논리적 일련번호를 부여
 --		- 조회되는 행 수를 제한할 때 많이 사용
 --		- 화면에 데이터를 출력할 때 부여되는 논리적 순번
+
 --	※ Inline View
 --		- SELECT문에서 FROM절에 사용되는 서브쿼리를 의미
 SELECT * FROM emp1
@@ -345,12 +390,23 @@ WHERE list BETWEEN 5 AND 10;
 -- MySQL
 --SELECT * FROM emp1 LIMIT 10;
 
--- (2) ROWID
+-- (2) ROWID(18자로 구성)
 --		- ORACLE에서 데이터를 구분할 수 있는 유일한 값
 --		- select 문으로 확인 가능
 --		- 데이터가 어떤 데이터 파일, 어느 블록에 저장되어 있는지 알 수 있음
-SELECT rowid, empno, ename
-FROM emp1;
+--	- ROWID 구조
+--		1) 오브젝트 번호 : 1 ~ 6
+--		2) 상대 파일 번호 : 7 ~ 9
+--		3) 블록 번호 : 10 ~ 15
+--		4) 데이터 번호 : 16 ~ 18
+SELECT	SUBSTR(rowid, 1, 6) || '-' ||
+		SUBSTR(rowid, 7, 3) || '-' ||
+		SUBSTR(rowid, 10, 6) || '-' ||
+		SUBSTR(rowid, 16, 3) AS formatted_rowid,
+		empno,
+		ename
+FROM	emp1;
+
 
 
 -- 14. WITH 구문
@@ -370,9 +426,10 @@ WITH W_EMP AS
 SELECT * FROM W_EMP;
 
 
+
 -- 15. DCL(Data Control Language)
 --	(1) GRANT : 권한 부여
---		"GRANT privileges ON object TO user;"
+--		"GRANT PRIVILEGES ON table TO user;"
 --		1) Privileges(권한)
 --			- SELECT 
 --			- INSERT
@@ -396,7 +453,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE
 	TO hiw15 WITH GRANT OPTION;
 
 -- (2) REVOKE : 권한 회수
---		"REVOKE privileges ON object TO user;"
+--		"REVOKE privileges ON table TO user;"
+
 
 
 -- 16. TCL(Transaction Control Language)
@@ -421,21 +479,47 @@ GRANT SELECT, INSERT, UPDATE, DELETE
 
 
 
+-- 17. 제약조건
+--	(1) 외래키(Foreign Key) 지정 : dept2의 deptno를 참조함
+--	(2) CASCADE : 참조 관계(기본키 - 외래키)가 있을 경우 참조되는 데이터를 자동으로 반영
+--		- emp2 테이블의 '카리나' 행은 참조하고 있는 테이블 deptno의 '1000'을 삭제시 자동 삭제됨
+DROP TABLE emp2;
+DROP TABLE dept2;
 
+CREATE TABLE dept2(
+	deptno varchar2(4) PRIMARY KEY,
+	dname varchar2(20)
+);
 
+INSERT INTO dept2 VALUES ('1000', '인사팀');
+INSERT INTO dept2 VALUES ('1001', '총무팀');
 
+CREATE TABLE emp2(
+	empno number(10),
+	ename varchar2(20),
+	sal number(10,2) DEFAULT 0,
+	deptno varchar2(4) NOT NULL,
+	createdate DATE DEFAULT sysdate,
+	CONSTRAINT emp_pk PRIMARY KEY (empno),
+	CONSTRAINT dept_fk FOREIGN KEY (deptno)
+		REFERENCES dept2 (deptno)
+		ON DELETE CASCADE
+);
 
+INSERT INTO emp2 VALUES (100, '카리나', 1000, '1000', sysdate);
+INSERT INTO emp2 VALUES (101, '차은우', 2000, '1001', sysdate);
 
+SELECT * FROM dept2;
+SELECT * FROM emp2;
 
+DELETE FROM dept2 WHERE deptno = '1000';
+SELECT * FROM emp2;
 
-
-
-
-
-
-
-
-
+-- Q. EMP3 테이블에 DEPT3 테이블의 기본키 deptno 칼럼을 참조하는 외래키 FK_DEPT를
+--	추가하고자 한다. 
+ALTER TABLE		emp3
+ADD CONSTRAINT	fk_dept FOREIGN KEY (deptno)
+REFERENCES		dept3 (deptno);
 
 
 
