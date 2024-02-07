@@ -1,4 +1,7 @@
 
+DROP TABLE dept3;
+DROP TABLE emp3;
+
 -- 더미 데이터 생성
 create table dept(
     deptno number(2,0),
