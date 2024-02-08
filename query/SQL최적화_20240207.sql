@@ -299,6 +299,13 @@ SELECT empno FROM emp3 WHERE empno >= 1000;
 --		3) 인덱스 전체 스캔(Index Full SCAN)
 --			- 인덱스에서 검색되는 인덱스 키가 많은 경우 Leaf Block의 처음부터
 --				끝까지 전체를 읽어 들임.
+
+--			※ Table Full Scan시 High Watermark
+--				- Table Full Scan은 테이블의 데이터를 모두 읽은 것.
+--				- 테이블을 읽을 때 High Watermark 이하 까지만 Table Full Scan을 함.
+--				- High Watermark는 테이블에 데이터가 저장된 블록에서 최상위 위치를 의미.
+--					(데이터 삭제시 High Watermark가 변경)
+
 SELECT ename, sal
 FROM emp1 WHERE ename LIKE '%' AND sal > 0;
 
@@ -337,7 +344,7 @@ WHERE a.DEPTNO = b.DEPTNO AND a.DEPTNO = 10;
 --	(2) Sort Merge 조인
 --		- 두 개의 테이블을 SORT_AREA라는 메모리 공간에 모두 로딩하고 SORT를 수행함.
 --		- 두 개의 테이블에 대해 SORT가 오나료되면 두 개의 테이블을 병합함.
---		- 정렬(Sort)이 발생하기 때문에 데이터양이 많아지면 성능이 떨어짐.
+--		- 정렬(Sort)이 가장 많이 발생하기 때문에 데이터양이 많아지면 성능이 떨어짐.
 --		- 정렬 데이터양이 너무 많으면 정렬은 임시 영역에서 수행됨.
 --			(임시 영역은 디스크에 있기 때문에 성능이 급격히 떨어짐)
 SELECT /*+ ordered use_merge(b) */ * FROM emp1 a, dept1 b

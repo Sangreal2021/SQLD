@@ -1,6 +1,7 @@
 -- [SQL 기본]
 
 -- 1. DDL(Data Definition Language)
+--	- CREATE, ALTER, DROP, RENAME, TRUNCATE
 
 -- 	(1) 테이블 생성
 --		- 제약조건
@@ -24,8 +25,8 @@ CREATE TABLE emp2(
 	sal number(10,2) DEFAULT 0,
 	deptno varchar2(4) NOT NULL,
 	createdate DATE DEFAULT sysdate,
-	CONSTRAINT emp_pk PRIMARY KEY (empno),
-	CONSTRAINT dept_fk FOREIGN KEY (deptno)
+	CONSTRAINT emp2_pk PRIMARY KEY (empno),
+	CONSTRAINT dept2_fk FOREIGN KEY (deptno)
 		REFERENCES dept2 (deptno)
 		ON DELETE CASCADE
 );
@@ -39,10 +40,10 @@ SELECT * FROM emp2;
 DELETE FROM dept2 WHERE deptno = '1000';
 SELECT * FROM emp2;
 
--- Q. EMP3 테이블에 DEPT3 테이블의 기본키 deptno 칼럼을 참조하는 외래키 FK_DEPT를
+-- Q. EMP3 테이블에 DEPT3 테이블의 기본키 deptno 칼럼을 참조하는 외래키 dept_fk를
 --	추가하고자 한다. 
 ALTER TABLE		emp3
-ADD CONSTRAINT	fk_dept FOREIGN KEY (deptno)
+ADD CONSTRAINT	dept3_fk FOREIGN KEY (deptno)
 REFERENCES		dept3 (deptno);
 
 
@@ -108,15 +109,18 @@ DROP VIEW T_EMP;
 
 
 -- ※ 최대 저장할 수 있는 공간
--- < DELETE vs TRUNCATE >
---	- DELETE : 테이블 용량은 감소하지 않음
---	- TRUNCATE : 테이블의 용량 초기화
 SELECT TABLE_NAME, MAX_EXTENTS
 FROM USER_TABLES;
+
+-- ※ < DELETE vs TRUNCATE >
+--	- DELETE : 테이블 용량은 감소하지 않음
+--	- TRUNCATE : 테이블의 용량 초기화, ROLLBACK X, 로그 기록 X,
+--		외래키 무결성 확인 X, WHERE절 지정 불가, 자동 COMMIT
 
 
 
 -- 2. DML(Data Manipulation Language)
+--	- INSERT, UPDATE, DELETE, SELECT
 
 -- 	(1) INSERT문
 --		1) 일반적인 경우
@@ -261,8 +265,8 @@ SELECT * FROM emp1 WHERE sal < 1000 OR sal >= 2000;
 --		(4) COALESCE : COALESCE(exp1, exp2, ...)
 --			- 인자들을 순차적으로 조회하여 최초로 NULL이 아닌 값을 찾으면 해당 값을 반환,
 --			전부 NULL이면 NULL 반환.
-SELECT * FROM emp1 WHERE MGR IS NULL ;
-SELECT * FROM emp1 WHERE MGR IS NOT NULL ;
+SELECT * FROM emp1 WHERE MGR IS NULL;
+SELECT * FROM emp1 WHERE MGR IS NOT NULL;
 
 SELECT * FROM emp1;
 SELECT * FROM dept1;
@@ -533,7 +537,7 @@ FROM 	emp1;
 -- 8. ROWNUM과 ROWID
 
 -- 	(1) ROWNUM
---		- ORACLE의 select문 결과에 대해 논리적 일련번호를 부여
+--		- ORACLE의 select문 결과에 대해 가상의 논리적 일련번호를 부여
 --		- 조회되는 행 수를 제한할 때 많이 사용
 --		- 화면에 데이터를 출력할 때 부여되는 논리적 순번
 
@@ -598,6 +602,7 @@ SELECT * FROM W_EMP;
 
 
 -- 10. DCL(Data Control Language)
+--	- GRANT, REVOKE
 
 --	(1) GRANT : 권한 부여
 --		"GRANT PRIVILEGES ON table TO user;"
@@ -629,6 +634,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE
 
 
 -- 11. TCL(Transaction Control Language)
+--	- COMMIT, ROLLBACK, SAVEPOINT
 
 --	(1) COMMIT
 --		- INSERT, UPDATE, DELETE문으로 변경한 데이터를 DB에 반영

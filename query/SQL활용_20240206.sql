@@ -14,23 +14,16 @@ WHERE emp1.DEPTNO = dept1.DEPTNO
 	AND emp1.ENAME LIKE '%S'
 ORDER BY ename;
 
-
---	(2) INNER JOIN
---		- ISO 표준 SQL로 ON문을 사용해서 테이블을 연결
-SELECT * FROM emp1 INNER JOIN dept1
-ON emp1.DEPTNO = dept1.DEPTNO;
-
-SELECT * FROM emp1 INNER JOIN dept1
-ON emp1.DEPTNO = dept1.DEPTNO
-	AND emp1.ENAME LIKE '%S'
-ORDER BY ename;
-
 ----------------------------------------------------------------------------------------------------------
 -- ※ 해시 조인(Hash Join)
---	- 먼저 선행 테이블을 결정하고 선행 테이블에서 주어진 조건(where구)에 해당하는 행을 선택
+
+--	- EQUI JOIN에서만 나타나는 실행계획.
+--	- 먼저 선행 테이블을 결정하고 선행 테이블에서 주어진 조건(where구)에 해당하는 행을 선택.
+--		(행의 수가 적은 테이블을 선행 테이블로 사용하는 것이 유리)
 --	- 해당 행이 선택되면 조인 키(Join Key)를 기준으로 해시 함수를 사용해서 해시 테이블을
---		메인 메모리에 생성하고 후행 테이블에서 주어진 조건에 만족하는 행을 찾음
---	- 후행 테이블의 조인 키를 사용해서 해시 함수를 적용하여 해당 버킷을 검색
+--		메인 메모리에 생성하고 후행 테이블에서 주어진 조건에 만족하는 행을 찾음.
+--	- 후행 테이블의 조인 키를 사용해서 해시 함수를 적용하여 해당 버킷을 검색.
+--	- 해시 테이블을 저장할 때 메모리 용량 초과시 임시 영역(디스크)에 저장.
 
 --		(1) 장점
 --		 - 대용량 데이터 세트를 조인할 때 효율적.
@@ -45,6 +38,17 @@ SELECT /*+ USE_HASH(e d) */ e.empno, e.ename, d.deptno, d.dname
 FROM emp1 e, dept1 d
 WHERE e.deptno = d.deptno;
 ----------------------------------------------------------------------------------------------------------
+
+
+--	(2) INNER JOIN
+--		- ISO 표준 SQL로 ON문을 사용해서 테이블을 연결
+SELECT * FROM emp1 INNER JOIN dept1
+ON emp1.DEPTNO = dept1.DEPTNO;
+
+SELECT * FROM emp1 INNER JOIN dept1
+ON emp1.DEPTNO = dept1.DEPTNO
+	AND emp1.ENAME LIKE '%S'
+ORDER BY ename;
 
 
 --	(3) INTERSECT 연산
@@ -94,7 +98,7 @@ SELECT deptno FROM emp1;
 
 --	(7) 차집합을 만드는 MINUS
 --		- 먼저 쓴 SELECT문에는 있고 뒤에 쓰는 SELECT문에는 없는 집합을 조회
---		- MySQL에 EXCEPT 문과 동일
+--		- MS-SQL에 EXCEPT 문과 동일
 SELECT * FROM dept1;
 SELECT * FROM emp1;
 
@@ -103,7 +107,7 @@ MINUS
 SELECT deptno FROM emp1;
 
 
---	(8) 셀프 조인(Self Join)
+--	(8) 셀프 조인(SELF JOIN)
 --		- 테이블을 자기 자신과 조인하는 기법.
 --		- 이 방법은 테이블 내에서 관련된 데이터를 비교하거나 조회할 때 유용함.
 --		- 주로 계층적 데이터나 연관된 레코드를 찾는 데 사용됨.
@@ -138,19 +142,52 @@ FROM	emp3 e1 JOIN emp3 e2 ON e1.deptno = e2.deptno AND e1.empno != e2.empno;
 
 
 -- 2. 계층형 조회(Connect by)
---	- Connect by는 트리 형태의 구조로 질의를 수행하는 것
---	- START WITH구 : 시작 조건
---	- CONNECT BY PRIOR : 조인 조건
---	- 계층형 조회에서 MAX(LEVEL)을 사용하여 최대 계층 수를 구할 수 있음
-SELECT MAX(LEVEL)
-FROM emp1
-START WITH mgr IS NULL
-CONNECT BY PRIOR empno = mgr;
+--	(1) Connect by는 트리 형태의 구조로 질의를 수행하는 것
+--	(2) START WITH구 : 시작 조건
+--	(3) CONNECT BY PRIOR : 조인 조건
+--	(4) 계층형 조회에서 MAX(LEVEL)을 사용하여 최대 계층 수를 구할 수 있음
+--		(Root = 1)
+--	(5) 키워드
+--		1) LEVEL : 검색 항목의 깊이를 의미(가장 상위 레벨이 1)
+--		2) CONNECT_BY_ROOT : 계층구조에서 가장 최상위 값을 표시
+--		3) CONNECT_BY_ISLEAF : 계층구조에서 가장 최하위를 표시(Leaf 데이터면 1, 아니면 0)
+--		4) SYS_CONNECT_BY_PATH : 계층구조의 전체 전개 경로를 표시
+--		5) NOCYCLE : 순환구조가 발생지점까지만 전개
+--		6) CONNECT_BY_ISCYCLE : 순환구조 발생지점을 표시 
 
+-- MAX(LEVEL)을 사용하여 최대 계층 수를 계산.(마지막 Leaf Node의 계층값)
+--	-> 트리의 최대 깊이는 4
+SELECT MAX(LEVEL)
+FROM emp3
+	START WITH mgr IS NULL
+	CONNECT BY PRIOR empno = mgr;
+
+-- 
 SELECT LEVEL, empno, mgr, ename
-FROM emp1
-START WITH mgr IS NULL
-CONNECT BY PRIOR empno = mgr;
+FROM emp3
+	START WITH mgr IS NULL
+	CONNECT BY PRIOR empno = mgr;
+
+-- 계층형 조회 결과를 명확히 보기 위해 LPAD 함수 사용
+SELECT	LEVEL,
+		LPAD(' ', 4*(LEVEL-1)) || empno AS "TREE",
+		mgr, ename
+FROM	emp3
+	START WITH mgr IS NULL
+	CONNECT BY PRIOR empno = mgr;
+
+-- - SYS_CONNECT_BY_PATH(ename, '/') AS "Path": 각 사원의 이름(ename)을 경로로 나타내며,
+--		경로의 각 단계는 /로 구분됨. 
+--		이 경로는 최상위 관리자(즉, mgr가 NULL인 사원)부터 시작하여 현재 사원까지의 계층적 경로를 보여줌.
+-- - START WITH mgr IS NULL : 계층 구조의 최상위에서 시작.
+--		여기서 최상위 사원은 관리자(mgr)가 없는 사원, 즉 mgr 컬럼이 NULL인 사원.
+-- - CONNECT BY PRIOR empno = mgr : 현재 행의 empno가 이전 행의 mgr와 일치하는 방식으로 계층적 관계를 정의.
+--		이는 각 관리자(mgr)에게 직접 보고하는 사원들을 찾아 계층을 구성하는 데 사용됨.
+SELECT	SYS_CONNECT_BY_PATH(ename, '/') AS "PATH",
+		empno, mgr, ename
+FROM	emp3
+	START WITH mgr IS NULL
+	CONNECT BY PRIOR empno = mgr;
 
 
 
@@ -177,11 +214,11 @@ WHERE num < 5;
 --			-> 결과는 반드시 항 행만 조회
 --			-> 비교 연산자 =, <, <=, >, >=, <> 를 사용
 
---		2) 다중 행 서브쿼리
+--		2) 다중 행(Multi Row) 서브쿼리
 --			-> 결과는 여러 개의 행이 조회
 --			-> 다중 행 비교 연산자 IN, ANY, ALL, EXISTS를 사용
 
---			- IN : 반환되는 여러 개의 행 중에서 하나만 참이 되어도 참
+--		- IN : 반환되는 여러 개의 행 중에서 하나만 참이 되어도 참
 --	ex) emp1 테이블에서 sal이 2000 초과인 사원번호를 반환하고, 반환된 사원번호와
 --		메인쿼리에 있는 사원번호와 비교해서 같은 것을 조회
 SELECT ename, dname, sal
@@ -189,12 +226,30 @@ FROM emp1, dept1
 WHERE emp1.DEPTNO = dept1.DEPTNO
 	AND emp1.EMPNO IN (SELECT empno FROM emp1 WHERE sal > 2000);
 
---			- ALL : 메인쿼리와 서브쿼리의 결과가 모두 동일하면 참
+--		- ANY : 서브쿼리의 결과 집합에 있는 어떤 값이라도 조건을 만족하는지를 검사하는 데 사용
+--	ex) 특정 부서의 평균 급여보다 더 많은 급여를 받는 사원들을 찾는 쿼리를 작성
+SELECT deptno, ename, sal
+FROM emp3
+WHERE sal > ANY (
+	SELECT AVG(sal) FROM emp3 GROUP BY deptno 
+);
+
+-- ex) 셀프 조인, 모든 관리자보다 급여가 많은 직원 조회
+SELECT a.*
+FROM emp3 a, emp3 b
+WHERE a.mgr = b.empno AND a.sal >= ANY b.sal;
+
+SELECT a.*
+FROM emp3 a
+JOIN emp3 b ON a.mgr = b.empno
+WHERE a.sal >= b.sal;
+
+--		- ALL : 메인쿼리와 서브쿼리의 결과가 모두 동일하면 참
 --	ex) deptno가 20, 30보다 작거나 같으면 조회
 SELECT * FROM emp1
 WHERE deptno <= ALL (20, 30);
 
---			- EXISTS : Subquery로 어떤 데이터 존재 여부를 확인(true or false 반환)
+--		- EXISTS : Subquery로 어떤 데이터 존재 여부를 확인(true or false 반환)
 --	ex) 직원 중 급여가 2000 이상이 있으면 참, 없으면 거짓 반환
 SELECT ename, dname, sal
 FROM emp1, dept1
