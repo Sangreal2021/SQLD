@@ -14,9 +14,9 @@ SELECT * FROM emp3;
 SELECT LEVEL, empno, ename, mgr
 FROM emp3
 	START WITH job = 'SALESMAN'
-	CONNECT BY PRIOR empno = mgr;0099999
+	CONNECT BY PRIOR empno = mgr;
 
-	
+
 -- 13. (p.211)
 SELECT	DECODE(b.dname, NULL, '전체합계', b.dname) AS "DNAME",
 		DECODE(a.job, NULL, '합계', a.job) AS "JOB",
@@ -97,10 +97,41 @@ RIGHT OUTER JOIN dept3 b
 SELECT * FROM emp3 WHERE empno LIKE '100%';
 
 
+-- 59. (p.253)
+SELECT	d.deptno,
+		sum(NVL(e.sal,0)) AS total_sal
+FROM	emp3 e
+JOIN	dept3 d ON e.deptno=e.deptno
+GROUP BY d.deptno;
 
 
+-- 62. (p.255)
+SELECT	deptno,
+		job,
+		sum(sal)
+FROM	emp1
+GROUP BY CUBE (deptno, job);
+
+SELECT	deptno,
+		job,
+		sum(sal)
+FROM	emp1
+GROUP BY GROUPING SETS (deptno, job, (deptno, job));
 
 
+-- 66. (p.257)
+SELECT * FROM emp3;
+
+SELECT * FROM emp3 WHERE (empno, ename) IN ((7369, 'SMITH'), (7499, 'ALLEN'));
+
+
+-- 86. (p.270)
+-- 테이블을 참조하지 않는 인덱스 생성
+--	-> IOT(Index-Organized Table) 
+--		: 인덱스의 Key가 Fetch하는 추출의 칼럼으로 이루어진 인덱스
+
+
+-- (p.274)
 
 
 

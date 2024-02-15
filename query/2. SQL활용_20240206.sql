@@ -6,6 +6,7 @@
 --		- 조인은 여러 개의 릴레이션을 사용해서 새로운 릴레이션을 만드는 과정
 --		- 조인의 기본은 교집합을 만드는 것
 --		- 2개의 테이블 간에 일치하는 것을 조인함
+--		- 반드시 기본키, 외래키 관계에 의해서만 성립되는 것 아님(조인 칼럼 1:1 매핑 가능하면 사용가능)
 SELECT * FROM emp1, dept1
 WHERE emp1.DEPTNO = dept1.DEPTNO;
 
@@ -62,6 +63,7 @@ SELECT deptno FROM dept1;
 
 --	(4) OUTER JOIN
 --		- 2개의 테이블 간에 교집합을 조회하고 한쪽 테이블에만 있는 데이터도 포함시켜 조회
+--		- 조인 조건을 만족하지 않는 데이터도 조회 가능
 
 --		1) LEFT OUTER JOIN
 --			: 2개의 테이블에서 같은 것을 조회하고 왼쪽 테이블에만 있는 것을 포함해서 조회
@@ -110,7 +112,7 @@ SELECT deptno FROM emp1;
 
 --	(8) 셀프 조인(SELF JOIN)
 --		- 테이블을 자기 자신과 조인하는 기법.
---		- 이 방법은 테이블 내에서 관련된 데이터를 비교하거나 조회할 때 유용함.
+--		- 이 방법은 1개의 테이블 내에서 2개의 연관된 칼럼(데이터)을 비교하거나 조회할 때 유용함.
 --		- 주로 계층적 데이터나 연관된 레코드를 찾는 데 사용됨.
 --		- 셀프 조인을 구현할 때는 같은 테이블을 서로 다른 별칭(alias)으로 참조하여 조인 조건을 명시.
 
@@ -194,6 +196,7 @@ FROM	emp3
 
 -- 3. 서브쿼리(Subquery)
 --	- SELECT문 내에 다시 SELECT문을 사용하는 SQL문.
+--	- 상호연관 서브쿼리는 실행속도가 상대적으로 느림
 --	<종류>
 --		- 스칼라 서브쿼리(Scala Subquery) : SELECT문에 Subquery를 사용
 --		- 인라인 뷰(Inline View) : FROM구에 SELECT문을 사용
@@ -327,7 +330,7 @@ GROUP BY GROUPING SETS (deptno, job);
 SELECT	deptno,
 		job,
 		sum(sal)
-FROM	emp1
+FROM	emp3
 GROUP BY CUBE (deptno, job);
 
 
@@ -339,14 +342,14 @@ GROUP BY CUBE (deptno, job);
 --		- 순위, 합계, 평균, 행 위치 등을 조작할 수 있음
 
 --		- 구조
-SELECT WINDOW_FUNCTION(args)
-	OVER(PARTITION BY 칼럼 ORDER BY WINDOWING절)
-FROM 테이블명;
 --			- args(인수) : 0 ~ N개의 인수를 설정
 --			- PARTITION BY : 전체 집합을 기준에 의해 소그룹으로 나눔
 --			- ORDER BY : 어떤 항목에 대해 정렬
 --			- WINDOWING : 행 기준의 범위를 정함
 --				ROWS는 물리적 결과의 행 수, RANGE는 논리적 값에 의한 범위
+SELECT WINDOW_FUNCTION(args)
+	OVER(PARTITION BY 칼럼 ORDER BY WINDOWING절)
+FROM 테이블명;
 
 --		- WINDOWING
 --			- ROWS : 부분집합인 윈도우 크기를 물리적 단위로 행의 집합을 지정
@@ -403,6 +406,7 @@ FROM	emp1;
 
 --		2) DENSE_RANK 함수
 --			- 동일한 순위를 하나의 건수로 계산
+--			- 누적된 순위를 부여할 수 있음
 -- ex) 2등이 2명이면 그 다음 순위는 3등부터
 SELECT	ename,
 		sal,

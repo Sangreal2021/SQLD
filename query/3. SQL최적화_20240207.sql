@@ -197,12 +197,13 @@ FROM	emp1;
 --		- 여러 개의 실행 계획 중 최저비용을 가지고 있는 계획을 선택해서 SQL 실행.
 
 --	(3) 옵티마이저 실행 계획 확인
--- 터미널에서 sqlplus로 실행
+
+-- ex) 터미널에서 sqlplus로 실행
 DESC PLAN_TABLE;
 
 
 
--- 5. 옵티마이저 종류
+-- 5. 옵티마이저
 
 --	(1) 옵티마이저의 실행 방법
 --		1) SQL을 실행하면 파싱(Parsing)을 실행해서 SQL 문법 검사 및 구문분석을 수행.
@@ -253,7 +254,13 @@ WHERE ROWID='AAAWeSAAGAAAAGLAAA';
 --		- 오브젝트 통계 및 시스템 통계를 사용해서 총비용을 계산.
 --		- 총비용은 SQL문을 실행하기 위해 예상되는 소요시간 or 자원의 사용량.
 --		- 총비용이 적은 쪽으로 실행 계획을 수립.
---		(단, 비용 기반 옵티마이저에서 통계정보가 부적절하면 성능 저하가 발생할 수 있음)
+--			(단, 비용 기반 옵티마이저에서 통계정보가 부적절하면 성능 저하가 발생할 수 있음)
+--		- 인덱스 스캔보다 전체 테이블 스캔이 비용이 낮다고 판단하면 적절한 인덱스가
+--			존재하더라도 전체 테이블 스캔으로 SQL문을 수행
+
+
+--	(4) 규칙 기반 옵티마이저
+--		- 규칙에 따라 적절한 인덱스가 존재하면 전체 테이블 스캔보다 항상 인덱스를 사용
 
 
 
@@ -294,17 +301,19 @@ SELECT * FROM emp1 WHERE empno=1000;
 --			- LIKE, BETWEEN이 대표적인 예.
 --			(데이터 양이 적은 경우 인덱스 자체를 실행하지 않고 TABLE FULL SCAN이 될 수 있음)
 --			- 인덱스의 Leaf Block의 특정 범위를 스캔한 것.
+--			- 결과 건수만큼 반환. 즉 결과가 없으면 한 건도 반환X
 SELECT empno FROM emp3 WHERE empno >= 1000;
 
 --		3) 인덱스 전체 스캔(Index Full SCAN)
 --			- 인덱스에서 검색되는 인덱스 키가 많은 경우 Leaf Block의 처음부터
 --				끝까지 전체를 읽어 들임.
 
---			※ Table Full Scan시 High Watermark
---				- Table Full Scan은 테이블의 데이터를 모두 읽은 것.
---				- 테이블을 읽을 때 High Watermark 이하 까지만 Table Full Scan을 함.
---				- High Watermark는 테이블에 데이터가 저장된 블록에서 최상위 위치를 의미.
---					(데이터 삭제시 High Watermark가 변경)
+--		4) Table Full Scan시 High Watermark
+--			- 테이블에 하나의 ROW만 저장되어 있을 때는 가장 유리한 방식
+--			- Table Full Scan은 테이블의 데이터를 모두 읽은 것.
+--			- 테이블을 읽을 때 High Watermark 이하 까지만 Table Full Scan을 함.
+--			- High Watermark는 테이블에 데이터가 저장된 블록에서 최상위 위치를 의미.
+--				(데이터 삭제시 High Watermark가 변경)
 
 SELECT ename, sal
 FROM emp1 WHERE ename LIKE '%' AND sal > 0;
@@ -312,7 +321,12 @@ FROM emp1 WHERE ename LIKE '%' AND sal > 0;
 
 
 -- 7. 실행 계획(Execution Plan)
---	- 다음은 emp1 테이블과 dept 테이블을 조인하고 emp1 테이블의 deptno 번호가
+--	- SQL문의 처리를 위한 절차와 방법이 표현
+--	- 동일 SQL문에 대해 실행 계획이 다르다고 결과가 달라지지 않음(성능은 달라짐)
+--	- 실행 계획은 액세스 기법, 조인 순서, 조인 방법등으로 구성
+--	- 최적화 정보는 실행 계획의 단계별 예상 비용을 표시
+
+--	ex) 다음은 emp1 테이블과 dept 테이블을 조인하고 emp1 테이블의 deptno 번호가
 --		10번인 것을 조회하는 SQL
 SELECT * FROM emp1, dept1
 WHERE emp1.DEPTNO = dept1.DEPTNO AND emp1.DEPTNO = 10;
@@ -343,7 +357,7 @@ WHERE a.DEPTNO = b.DEPTNO AND a.DEPTNO = 10;
 
 --	(2) Sort Merge 조인
 --		- 두 개의 테이블을 SORT_AREA라는 메모리 공간에 모두 로딩하고 SORT를 수행함.
---		- 두 개의 테이블에 대해 SORT가 오나료되면 두 개의 테이블을 병합함.
+--		- 두 개의 테이블에 대해 SORT가 완료되면 두 개의 테이블을 병합함.
 --		- 정렬(Sort)이 가장 많이 발생하기 때문에 데이터양이 많아지면 성능이 떨어짐.
 --		- 정렬 데이터양이 너무 많으면 정렬은 임시 영역에서 수행됨.
 --			(임시 영역은 디스크에 있기 때문에 성능이 급격히 떨어짐)
@@ -363,6 +377,30 @@ WHERE a.DEPTNO = b.DEPTNO AND a.DEPTNO = 10;
 --		- 선행 테이블이 충분히 메모리에 로딩되는 크기여야 함.
 SELECT /*+ ordered use_hash(b) */ * FROM emp1 a, dept1 b
 WHERE a.DEPTNO = b.DEPTNO AND a.DEPTNO = 10;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

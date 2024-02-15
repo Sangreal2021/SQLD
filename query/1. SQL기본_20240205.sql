@@ -364,7 +364,6 @@ SELECT	deptno,
 FROM emp1 GROUP BY deptno ORDER BY deptno;
 
 
-
 -- 	(2) HAVING문
 --	: GROUP BY에 조건절을 사용하기 위한 조건문
 SELECT		deptno, 
@@ -374,9 +373,8 @@ GROUP BY	deptno
 HAVING		SUM(sal) > 5000 ORDER BY deptno;
 
 
-
 -- 	(3) 집계 함수
---		1) COUNT() : 행 수를 조회
+--		1) COUNT() : 행 수를 조회, 어떤 데이터 타입도 사용 가능
 --			- COUNT(*) : NULL 값 포함 모든 행 수
 --			- COUNT(칼럼명) : NULL 값 제외 행 수
 --		2)	SUM() : 합계를 계산
@@ -509,6 +507,118 @@ SELECT	ABS(-1),
 		TRUNC(10.321, 2)
 FROM DUAL;
 
+----------------------------------------------------------------------------------------------------------
+-- ※ 절차형 SQL
+--	- 주로 PL/SQL(Procedural Language/SQL)을 통해 구현됨
+--	- PL/SQL은 SQL에 절차적 기능을 추가하여 복잡한 비즈니스 로직을 구현할 수 있도록 해주는 Oracle의 확장
+--	- PL/SQL을 사용하여 저장 프로시저, 트리거, 사용자 정의 함수 등 다양한 데이터베이스 객체를 생성
+--	- 각각의 객체는 데이터베이스 내에서 특정 작업을 수행하는 데 사용
+CREATE TABLE dept4 AS SELECT * FROM dept3;
+CREATE TABLE emp4 AS SELECT * FROM emp3;
+
+--	(1) 저장 프로시저(Prosedure)
+--		- SQL 문과 PL/SQL 블록을 조합하여 작성할 수 있는 데이터베이스 내의 하나의 프로그램
+--		- 일련의 작업을 수행하고, 필요에 따라 입력 파라미터를 받아 처리한 후 결과를 반환
+
+-- ex) 특정 부서(deptno)의 모든 사원의 급여를 일정 비율로 증가시키는 저장 프로시저
+CREATE OR REPLACE PROCEDURE RaiseSalaryByDept(
+    p_deptno IN emp4.deptno%TYPE,
+    p_percentage IN NUMBER
+) IS
+BEGIN
+    UPDATE emp4
+    SET sal = sal * (1 + p_percentage / 100)
+    WHERE deptno = p_deptno;
+
+    COMMIT;
+END;
+
+-- 확인
+SELECT text FROM all_source WHERE name='RAISESALARYBYDEPT' AND TYPE='PROCEDURE' ORDER BY line;
+
+
+--	(2) 트리거(Trigger)
+--		- 특정 이벤트(ex. 테이블에 대한 INSERT, UPDATE, DELETE 연산)가 발생했을 때 자동으로 실행되는 PL/SQL 블록
+--		- 데이터의 무결성을 유지하거나, 감사 로깅, 자동화된 데이터 업데이트 등에 유용하게 사용
+
+-- ex) emp 테이블에 새로운 사원이 추가되거나 사원의 정보가 변경될 때, 변경 내용을 emp_audit 테이블에 기록하는 트리거
+--CREATE OR REPLACE TRIGGER EMPAUDITTRIGGER
+--AFTER INSERT OR UPDATE ON emp4
+--FOR EACH ROW
+--BEGIN
+--    INSERT INTO emp_audit(emp_id, change_date, action_type)
+--    VALUES (:NEW.empno, SYSDATE, CASE WHEN INSERTING THEN 'INSERT' ELSE 'UPDATE' END);
+--END;
+DROP TRIGGER EMPAUDITTRIGGER;
+
+CREATE OR REPLACE TRIGGER EMPAUDITTRIGGER
+AFTER INSERT OR UPDATE ON emp4
+FOR EACH ROW
+BEGIN
+    INSERT INTO emp_audit(emp_id, change_date, action_type)
+    VALUES (:NEW.empno, SYSDATE, 'changed');
+END;
+
+--  emp_audit 테이블 생성
+CREATE TABLE emp_audit (
+    emp_id NUMBER(4,0),       	-- emp4 테이블의 empno 컬럼과 동일한 타입으로 가정
+    change_date TIMESTAMP,    		-- 변경이 발생한 날짜를 기록
+    action_type VARCHAR2(20)	-- 수행된 작업의 유형 (예: 'INSERT', 'UPDATE')
+);
+
+TRUNCATE TABLE EMP_AUDIT;
+DROP TABLE emp_audit;
+
+SELECT * FROM emp_audit;
+ALTER TRIGGER EMPAUDITTRIGGER compile;
+
+-- 확인
+SELECT * FROM dept4;
+SELECT * FROM emp4;
+SELECT trigger_name, table_name, status FROM all_triggers WHERE trigger_name='EMPAUDITTRIGGER';
+
+INSERT INTO emp4 (empno, ename, job, mgr, hiredate, sal, comm, deptno)
+VALUES (7950, 'BECKHAM', 'DEVELOPER', 7839, SYSDATE, 4500, 500, 40);
+
+DELETE FROM emp4 WHERE empno=7950;
+
+SELECT * FROM user_errors WHERE name='EMPAUDITTRIGGER';
+
+
+--	(3) 사용자 정의 함수(User Defined Function)
+--		- 특정 작업을 수행하고 결과를 반환하는 PL/SQL 프로그램
+--		- 함수는 쿼리 내에서 호출되어, 그 결과를 표현식의 일부로 사용할 수 있음
+
+-- ex) 특정 사원(empno)의 연간 급여를 계산하는 함수
+CREATE OR REPLACE FUNCTION CalculateAnnualSalary(
+    p_empno IN emp4.empno%TYPE
+) RETURN NUMBER IS
+    v_annual_salary NUMBER := 0; -- 기본값을 0으로 설정
+BEGIN
+    SELECT sal * 12 INTO v_annual_salary
+    FROM emp4
+    WHERE empno = p_empno;
+
+    RETURN v_annual_salary; -- 성공적으로 계산된 연간 급여 반환
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        -- 사원이 존재하지 않는 경우, v_annual_salary에 설정된 기본값 0 반환
+        RETURN v_annual_salary;
+    WHEN OTHERS THEN
+        -- 다른 모든 예외 처리: 오류 메시지 로깅 또는 사용자 정의 오류 발생
+        RAISE_APPLICATION_ERROR(-20001, 'Unexpected error: ' || SQLERRM);
+END;
+
+-- 확인
+SELECT object_name, object_type, status
+FROM all_objects
+WHERE object_name='CALCULATEANNUALSALARY' AND object_type='FUNCTION';
+
+SELECT text FROM all_source
+WHERE name='CALCULATEANNUALSALARY' AND TYPE='FUNCTION' ORDER BY line;
+----------------------------------------------------------------------------------------------------------
+
 
 
 -- 7. DECODE와 CASE 문
@@ -630,7 +740,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE
 	ON emp1
 	TO hiw15 WITH GRANT OPTION;
 
-
+j
 -- (2) REVOKE : 권한 회수
 --		"REVOKE privileges ON table TO user;"
 
@@ -638,6 +748,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE
 
 -- 11. TCL(Transaction Control Language)
 --	- COMMIT, ROLLBACK, SAVEPOINT
+--	- 데이터의 무결성 보장
+--	- 영구적 변경을 하기 전 데이터의 변경사항 확인 가능
+--	- 논리적으로 연관된 작업을 그룹핑하여 처리 가능
 
 --	(1) COMMIT
 --		- INSERT, UPDATE, DELETE문으로 변경한 데이터를 DB에 반영
