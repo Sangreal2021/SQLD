@@ -5,3 +5,5 @@ query/General/
 # 무시할 파일 형식
 *.log
 *.tmp
+*.jar
+*.pom
