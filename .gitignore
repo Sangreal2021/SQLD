@@ -1,0 +1,7 @@
+# 무시할 폴더
+query/.metadata/
+query/General/
+
+# 무시할 파일 형식
+*.log
+*.tmp
