@@ -2,6 +2,7 @@
 
 -- 1. DDL(Data Definition Language)
 --	- CREATE, ALTER, DROP, RENAME, TRUNCATE
+--	- 자동 commit 실행
 
 -- 	(1) 테이블 생성
 --		- 제약조건
@@ -125,7 +126,7 @@ FROM USER_TABLES;
 -- 2. DML(Data Manipulation Language)
 --	- INSERT, UPDATE, DELETE, SELECT
 
--- 	(1) INSERT문
+-- 	(1) INSERT 문
 --		1) 일반적인 경우
 --			INSERT INTO emp (COL1, COL2, ...) VALUES (exp1, exp2, ...);
 
@@ -152,7 +153,7 @@ ALTER TABLE dept3 nologging;
 SELECT * FROM dept3;
 
 
---	(2) UPDATE문
+--	(2) UPDATE 문
 --	- 조건문을 입력하지 않으면 모든 데이터가 수정됨
 UPDATE dept3 SET loc='KYOTO' WHERE deptno=70;
 UPDATE dept3 SET dname='UNKNOWN' WHERE dname IS NULL;
@@ -160,7 +161,7 @@ UPDATE dept3 SET dname='UNKNOWN' WHERE dname IS NULL;
 SELECT * FROM dept3;
 
 
---	(3) DELETE문
+--	(3) DELETE 문
 --	- 조건문을 입력하지 않으면 모든 데이터가 삭제됨(용량 초기화X)
 --	- 용량 초기화는 TRUNCATE
 DELETE FROM dept3 WHERE deptno=70;
@@ -168,7 +169,7 @@ DELETE FROM dept3 WHERE deptno=70;
 SELECT * FROM dept3;
 
 
---	(4) SELECT문
+--	(4) SELECT 문
 --		1) 칼럼 지정
 SELECT ename || ' 님' FROM emp1;
 
@@ -219,14 +220,93 @@ SELECT	empno AS "사번", ename AS "이름"
 FROM	emp a
 WHERE	a.empno BETWEEN 1000 AND 1005;
 
+--	(5) MERGE 문
+CREATE TABLE dept_m AS SELECT * FROM dept3;
+CREATE TABLE emp_m AS SELECT * FROM emp3;
+SELECT * FROM dept_m;
+SELECT * FROM emp_m;
+DROP TABLE emp_m;
+
+--	new_emp_data 테이블 : 새로 업데이트될 직원 정보 테이블 
+CREATE TABLE new_emp_data AS SELECT * FROM emp3;
+TRUNCATE TABLE new_emp_data;
+SELECT * FROM new_emp_data;
+
+INSERT INTO new_emp_data VALUES
+	(7950, 'DANAKA', 'SALESMAN', 7566, to_date('2024-01-18', 'YYYY-MM-DD'), 2800, 10, 30);
+INSERT INTO new_emp_data VALUES
+	(7960, 'BECKHAM', 'DEVELOPER', 7839, to_date('2024-01-02', 'YYYY-MM-DD'), 4500, 500, 40);
+INSERT INTO new_emp_data VALUES
+	(7934, 'GREEN', 'ANALYST', 7839, to_date('2024-02-15', 'YYYY-MM-DD'), 1300, NULL, 20);
+
+SELECT * FROM new_emp_data;
+--		1) UPDATE 예시
+--		- e.empno와 n.empno가 일치하는 조건이 있다면 숫자 1을 반환.
+--		- EXISTS는 해당 값이 존재한다면 TRUE를 반환(서브쿼리 결과가 비어있지 않으면 조건 만족)
+--		- MILLER를 GREEN으로 대체
+UPDATE emp_m e
+SET (e.ename, e.job, e.hiredate, e.sal, e.deptno) = 
+	(SELECT n.ename, n.job, n.hiredate, n.sal, n.deptno
+     FROM new_emp_data n
+     WHERE e.empno = n.empno)
+WHERE EXISTS (
+    SELECT 1 FROM new_emp_data n
+    WHERE e.empno = n.empno
+);
+
+--		2) INSERT 예시
+--		- DANAKA와 BECKHAM 추가
+INSERT INTO emp_m (empno, ename, job, mgr, hiredate, sal, comm, deptno)
+SELECT n.empno, n.ename, n.job, n.mgr, n.hiredate, n.sal, n.comm, n.deptno
+FROM new_emp_data n
+WHERE NOT EXISTS (
+    SELECT 1 FROM emp_m e
+    WHERE e.empno = n.empno
+);
+
+SELECT * FROM emp_m;
+
+--		3) MERGE 예시 (UPDATE + INSERT)
+DROP TABLE emp_m;
+CREATE TABLE emp_m AS SELECT * FROM emp3;
+
+MERGE INTO emp_m e
+USING (SELECT empno, ename, job, mgr, hiredate, sal, comm, deptno FROM new_emp_data) n
+ON (e.empno = n.empno)
+WHEN MATCHED THEN
+    UPDATE SET e.ename = n.ename,
+               e.job = n.job,
+               e.hiredate = n.hiredate,
+               e.sal = n.sal,
+               e.deptno = n.deptno
+WHEN NOT MATCHED THEN
+    INSERT (empno, ename, job, mgr, hiredate, sal, comm, deptno)
+    VALUES (n.empno, n.ename, n.job, n.mgr, n.hiredate, n.sal, n.comm, n.deptno);
+   
+SELECT * FROM emp_m;
+
+-- MERGE INTO emp_m e: emp_m 테이블이 업데이트 또는 새로운 행을 삽입할 대상.
+-- USING 절: new_emp_data로부터 가져온 데이터를 사용하여 emp_m 테이블을 업데이트하거나 
+--	행을 삽입할 소스 데이터를 제공. 여기서는 empno, ename, job, mgr, hiredate, sal, comm, deptno 컬럼을 선택.
+-- ON (e.empno = n.empno): emp_m 테이블의 empno와 new_emp_data의 empno를 비교하여 일치하는 행을 찾음.
+--	이는 업데이트 또는 삽입 작업의 기준이 됨.
+-- WHEN MATCHED THEN 절: 조건에 일치하는 행이 있을 경우, 해당 행을 new_emp_data의 값으로 업데이트.
+--	ename, job, hiredate, sal, deptno 컬럼이 업데이트 대상.
+--	mgr와 comm 컬럼은 이 예시에서 업데이트하지 않음. 필요에 따라 업데이트 항목에 추가할 수 있음.
+-- WHEN NOT MATCHED THEN 절: emp_m 테이블에 일치하는 empno가 없을 경우, new_emp_data로부터 가져온 데이터를
+--	새로운 행으로 삽입함. 모든 컬럼 empno, ename, job, mgr, hiredate, sal, comm, deptno가 삽입됨.
+
 
 
 -- 3. WHERE 문
---	(1) BETWEEN a AND b : a 이상, b 이하
---	(2) NOT BETWEEN a AND b : a 미만, b 초과
---	(3) IN (a, b) : a 또는 b
---	(4) NOT IN(a, b) : a, b 가 아닌 것
---	(5) IN NULL / IS NOT NULL
+--	(1) WHERE문 연산자
+--		1) BETWEEN a AND b : a 이상, b 이하
+--		2) NOT BETWEEN a AND b : a 미만, b 초과
+--		3) IN (a, b) : a 또는 b
+--		4) NOT IN(a, b) : a, b 가 아닌 것
+--		5) IN NULL / IS NOT NULL
+--		6) 연산자 실행순서
+--			괄호 -> NOT -> 비교연산자 -> AND -> OR
 SELECT * FROM emp1;
 
 SELECT * FROM emp1 WHERE empno >= 1000 AND sal >= 1500;
@@ -740,7 +820,12 @@ GRANT SELECT, INSERT, UPDATE, DELETE
 	ON emp1
 	TO hiw15 WITH GRANT OPTION;
 
-j
+--		3) DBA 권한
+--			- 데이터베이스 생성, 사용자 계정 관리, 보안 설정, 백업 및 복구와 같은
+--				중요한 DB 관리 작업을 수행할 수 있는 권한
+--			- Object(테이블, 프로시저, 뷰) 등의 권한을 묶어서 관리할 수 있음(ROLL)
+GRANT DBA TO username;
+
 -- (2) REVOKE : 권한 회수
 --		"REVOKE privileges ON table TO user;"
 
@@ -755,6 +840,7 @@ j
 --	(1) COMMIT
 --		- INSERT, UPDATE, DELETE문으로 변경한 데이터를 DB에 반영
 --		- 변경 이전 데이터는 잃어버림
+
 --	※ Auto commit
 --		- SQLPLUS 프로그램을 정상적으로 종료시 자동 COMMIT 됨.
 --		- DDL 및 DCL을 사용하는 경우 자동 COMMIT 됨.

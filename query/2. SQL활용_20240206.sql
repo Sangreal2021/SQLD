@@ -28,7 +28,7 @@ ORDER BY ename;
 --	- 조인 칼럼의 인덱스가 존재하지 않은 경우에도 사용 가능.
 
 --		(1) 장점
---		 - 대용량 데이터 세트를 조인할 때 효율적.
+--		 - 정렬 작업이 없어서 대용량 데이터 세트를 조인할 때 효율적.
 --		 - 디스크 I/O 작업을 최소화하고, 조인 키에 대한 빠른 검색을 통해 조인 수행시간을 단축
 --		(2) 단점
 --		 - 사용 가능한 메모리 양에 따라 성능에 영향
@@ -46,6 +46,9 @@ WHERE e.deptno = d.deptno;
 --		- ISO 표준 SQL로 ON문을 사용해서 테이블을 연결
 SELECT * FROM emp1 INNER JOIN dept1
 ON emp1.DEPTNO = dept1.DEPTNO;
+
+SELECT * FROM emp1 e, dept1 d
+WHERE e.DEPTNO = d.DEPTNO;
 
 SELECT * FROM emp1 INNER JOIN dept1
 ON emp1.DEPTNO = dept1.DEPTNO
@@ -91,9 +94,11 @@ SELECT * FROM emp1, dept1;
 SELECT deptno FROM emp1
 UNION
 SELECT deptno FROM emp1;
+
 --		2) UNION ALL
 --			- 2개의 테이블을 하나로 만드는 연산
 --			- 중복 데이터 제거 X, 정렬(sort) 과정을 발생 X
+--			- 성능 측면에서 UNION 보다 우수함
 SELECT deptno FROM emp1
 UNION ALL
 SELECT deptno FROM emp1;
@@ -108,6 +113,22 @@ SELECT * FROM emp1;
 SELECT deptno FROM dept1
 MINUS
 SELECT deptno FROM emp1;
+
+--		- MariaDB, MySQL 의 경우
+--			1) LEFT JOIN과 NULL 사용
+SELECT a.*
+FROM table1 a LEFT JOIN table2 b
+ON a.id = b.id
+WHERE b.id IS NULL;
+
+--			2) NOT EXISTS 사용
+--			- a.id = b.id 가 존재하지 않는 경우에만 결과 반환
+SELECT a.*
+FROM table1 a
+WHERE NOT EXISTS (
+    SELECT 1 FROM table2 b
+    WHERE a.id = b.id
+);
 
 
 --	(8) 셀프 조인(SELF JOIN)
@@ -141,6 +162,14 @@ FROM	emp3 e1 JOIN emp3 e2 ON e1.deptno = e2.deptno AND e1.empno != e2.empno;
 --		- 셀프 조인은 테이블 내부의 데이터 간 관계를 명확히 이해할 때 가장 효과적.
 --			테이블의 데이터 구조와 관계를 잘 파악하고 쿼리를 작성해야 함.
 --		- 셀프 조인은 계층적 데이터나 참조 관계를 가진 데이터를 조회하는 데 특히 유용.
+
+
+-- (9) 내츄럴 조인(NATURAL JOIN)
+--		- 두 테이블에서 동일한 칼럼 이름을 가지는 칼럼을 모두 조회
+--		- Alias를 사용할 수 없음
+--	ex)
+SELECT empno, ename, deptno
+FROM emp3 NATURAL JOIN dept3;
 
 
 
@@ -197,6 +226,9 @@ FROM	emp3
 -- 3. 서브쿼리(Subquery)
 --	- SELECT문 내에 다시 SELECT문을 사용하는 SQL문.
 --	- 상호연관 서브쿼리는 실행속도가 상대적으로 느림
+--	- 정렬을 수행하기 위해 내부에 ORDER BY를 사용하지 못함
+--	- 서브쿼리 내부에서 메인쿼리 칼럼 사용O, 메인쿼리에서 서브쿼리 칼럼 사용X
+
 --	<종류>
 --		- 스칼라 서브쿼리(Scala Subquery) : SELECT문에 Subquery를 사용
 --		- 인라인 뷰(Inline View) : FROM구에 SELECT문을 사용
@@ -270,6 +302,15 @@ SELECT	ename AS "이름",
 FROM	emp1
 WHERE	empno=1000;
 
+
+--	(5) SQL 개선 측면에서 서브쿼리의 종류
+--		1) Access Subquery : 쿼리의 변형이 없고, 제공자의 역할
+--		2) Filter Subquery : 쿼리의 변형이 없고, 확인자 역할
+--		3) Early Filter Subquery : 쿼리의 변형이 없고, 서브쿼리가 먼저 실행하여
+--								데이터를 걸러냄
+--		4) Correlated Subquery : 메인쿼리 값을 서브쿼리가 사용하고, 서브쿼리 값을
+--								받아서 메인쿼리가 계산되는 쿼리
+ 
 
 
 -- 4. 그룹 함수
@@ -410,7 +451,7 @@ FROM	emp1;
 -- ex) 2등이 2명이면 그 다음 순위는 3등부터
 SELECT	ename,
 		sal,
-		RANK() OVER (ORDER BY sal DESC) AS "ALL_RANK",
+		RANK() OVER (ORDER BY sal DESC) AS "RANK_FUNC",
 		DENSE_RANK() OVER (ORDER BY sal DESC) AS "DENSE_RANK"
 FROM	emp1;
 
@@ -418,7 +459,7 @@ FROM	emp1;
 --			- 동일한 순위에 대해 고유의 순위를 부여
 SELECT	ename,
 		sal,
-		RANK () OVER (ORDER BY sal DESC) AS "ALL_RANK",
+		RANK () OVER (ORDER BY sal DESC) AS "RANK_FUNC",
 		ROW_NUMBER () OVER (ORDER BY sal DESC) AS "ROW_NUM"
 FROM	emp1;
 
@@ -449,8 +490,7 @@ SELECT	deptno,
 		ename,
 		sal,
 		FIRST_VALUE(ename) OVER (PARTITION BY deptno
-			ORDER BY sal DESC ROWS UNBOUNDED PRECEDING
-		) AS "DEPT_A"
+			ORDER BY sal DESC ROWS UNBOUNDED PRECEDING) AS "DEPT_A"
 FROM 	emp1;
 
 --		2) LAST_VALUE : 파티션에서 가장 나중에 나오는 값(MAX 함수와 같은 결과)
@@ -473,12 +513,10 @@ FROM	emp1;
 --		4) LEAD : 특정 위치의 행을 가지고 옴(Default는 1, 첫번째 행의 값)
 -- ex) SAL에서 2번째 행의 값을 가져옴
 -- 	LEAD(sal, 2): 현재 행으로부터 두 행 뒤에 위치한 행의 sal 값을 가져옴.
---		예를 들어, 현재 행이 급여 목록에서 세 번째로 높은 급여를 가지고 있다면,
---		LEAD(sal, 2)는 다섯 번째로 높은 급여를 가진 행의 급여를 반환
 SELECT	deptno,
 		ename,
 		sal,
-		LEAD(sal, 2) OVER (ORDER BY sal DESC) AS "PRE_SAL"
+		LEAD(sal, 2) OVER (ORDER BY sal DESC) AS "LEAD_SAL"
 FROM	emp1;
 
 

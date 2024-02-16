@@ -272,7 +272,8 @@ WHERE ROWID='AAAWeSAAGAAAAGLAAA';
 --		4) 하나의 테이블에 여러 개의 인덱스를 생성할 수 있고,
 --			하나의 인덱스는 여러 개의 칼럼으로 구성될 수 있음.
 --		5) 테이블 생성시 기본키(PK)는 자동으로 인덱스가 만들어지고 인덱스 이름은 SYSXXXX.
---		6) 인덱스 구조
+--		6) idx1 - idx2, idx1 + idx2 등 인덱스 변형이 일어나면 실행되지 않음(성능 저하)
+--		7) 인덱스 구조
 --			- Root Block : 인덱스 트리에서 가장 상위에 있는 노드.
 --			- Branch Block : 다음 단계의 주소를 가지고 있는 포인터(Pointer)로 구성.
 --			- Leaf Block : 인덱스 키와 ROWID로 구성되고 인덱스 키는 정렬되어 저장.
@@ -344,6 +345,7 @@ WHERE emp1.DEPTNO = dept1.DEPTNO AND emp1.DEPTNO = 10;
 --			그 다음 조회되는 테이블을 내부 테이블(Inner Table)이라고 함.
 --		- 외부 테이블(선행 테이블)의 크기가 작은 것을 먼저 찾는 것이 중요.
 --			(그래야 데이터가 스캔되는 범위를 줄일 수 있기 때문)
+--		- 내부 테이블(후행 테이블) 에 인덱스가 없으면 사용 X
 --		- RANDOM ACCESS가 많이 발생.(성능 저하)
 SELECT /*+ ordered use_nl(b) */ * FROM emp1 a, dept1 b
 WHERE a.DEPTNO = b.DEPTNO AND a.DEPTNO = 10;
