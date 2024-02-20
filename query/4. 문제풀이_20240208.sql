@@ -363,3 +363,4 @@ SELECT NVL(count(*), 9999) FROM dual WHERE 1=2;
 
 
 
+
