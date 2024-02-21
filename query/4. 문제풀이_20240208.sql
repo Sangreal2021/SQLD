@@ -332,7 +332,7 @@ FROM emp3;
 
 -- 20. (p.334)
 --	- count(*) 함수는 조건절이 거짓일 때 0을 반환
-SELECT NVL(count(*), 9999) FROM dual WHERE 1=2;
+SELECT NVL(count(*), 9999) FROM dual WHERE 1=0;
 
 
 
