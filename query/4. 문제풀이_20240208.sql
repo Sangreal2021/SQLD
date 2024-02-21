@@ -354,6 +354,8 @@ FROM dept3 d LEFT JOIN emp3 e ON d.deptno = e.deptno
 WHERE e.deptno IS NULL;
 
 
+-- (p.340)
+
 
 
 
