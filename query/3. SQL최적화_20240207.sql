@@ -285,12 +285,25 @@ WHERE ROWID='AAAWeSAAGAAAAGLAAA';
 --		- "CREATE INDEX" 문을 사용해 생성 가능.
 --		- 인덱스 생성시 한 개 이상의 칼럼을 사용해 생성할 수 있음.
 --		- 인덱스 키는 기본적으로 오름차순으로 정렬, DESC구를 포함하면 내림차순으로 정렬.
+--		- 파티션 인덱스의 경우 파티션 키에 대해 인덱스 생성 가능 (GLOBAL 인덱스)
 
 -- ex) ename에 대해 오름차순으로 정렬, sal은 내림차순으로 정렬하는 인덱스 생성하기
 CREATE INDEX ind_emp3 ON emp3 (ename ASC, sal DESC);
 
 
---	(3) 인덱스 스캔(Index Scan)
+--	(3) 인덱스 종류
+--		- 순차 인덱스
+--		- 결합 인덱스
+--		- 비트맵
+--		- 클러스터
+--		- 해시 인덱스
+
+
+--	(4) 인덱스 타입
+--		- VARCHAR, CHAR, DATE, NUMBER 모두 생성 가능
+
+
+--	(5) 인덱스 스캔(Index Scan)
 --		1) 인덱스 유일 스캔(Index Unique SCAN)
 --			- 검색 속도가 가장 빠름.
 --			- 인덱스의 키 값이 중복되지 않은 경우, 해당 인덱스를 사용할 때 발생됨.

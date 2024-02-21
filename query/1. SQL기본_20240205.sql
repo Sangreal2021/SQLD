@@ -305,8 +305,17 @@ SELECT * FROM emp_m;
 --		3) IN (a, b) : a 또는 b
 --		4) NOT IN(a, b) : a, b 가 아닌 것
 --		5) IN NULL / IS NOT NULL
---		6) 연산자 실행순서
---			괄호 -> NOT -> 비교연산자 -> AND -> OR
+--		6) 연산자 우선순위
+--			- 산술 연산자( *, /, +, - )
+--			- 연결 연산자( || )
+--			- 비교 연산자( <, >, <=, >=, <>, = )
+--			- IS NULL, LIKE, IN
+--			- BETWEEN
+--			- NOT 연산자
+--			- AND 연산자
+--			- OR 연산자
+--			- 
+
 SELECT * FROM emp1;
 
 SELECT * FROM emp1 WHERE empno >= 1000 AND sal >= 1500;

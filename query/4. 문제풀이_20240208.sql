@@ -335,6 +335,25 @@ FROM emp3;
 SELECT NVL(count(*), 9999) FROM dual WHERE 1=0;
 
 
+-- 22. (p.334)
+--	PL/SQL
+--		- 절차형 언어
+--		- 테이블 생성이 가능함(주로 임시 테이블 용도)
+--		- 조건문은 "IF ~ THEN ~ ELSEIF ~ END IF" 와 "CASE ~ WHEN"을 사용함 
+--		- 변수에 대입시 ":=" 기호를 사용
+
+
+-- 27. (p.336)
+--	<> ANY 조건은 dept3의 deptno 중에서 emp3의 deptno 중 하나라도 다른 것이 있다면
+--	true를 반환
+SELECT deptno FROM dept3 WHERE deptno <> ANY (SELECT deptno FROM emp3);
+SELECT deptno FROM dept3 WHERE 1=1;
+
+SELECT d.deptno
+FROM dept3 d LEFT JOIN emp3 e ON d.deptno = e.deptno
+WHERE e.deptno IS NULL;
+
+
 
 
 

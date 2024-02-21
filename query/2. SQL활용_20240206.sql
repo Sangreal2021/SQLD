@@ -178,7 +178,7 @@ FROM emp3 NATURAL JOIN dept3;
 --	(2) START WITH구 : 시작 조건
 --	(3) CONNECT BY PRIOR : 조인 조건
 --	(4) 계층형 조회에서 MAX(LEVEL)을 사용하여 최대 계층 수를 구할 수 있음
---		(Root = 1)
+--		(Root = 1, 마지막 LEAF는 4)
 --	(5) 키워드
 --		1) LEVEL : 검색 항목의 깊이를 의미(가장 상위 레벨이 1)
 --		2) CONNECT_BY_ROOT : 계층구조에서 가장 최상위 값을 표시
