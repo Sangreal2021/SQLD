@@ -25,7 +25,7 @@ create_backup_dirs() {
     for key in "${!backup_dirs[@]}"; do
         mkdir -p "${backup_dirs[$key]}/${backup_suffix}_${var_1}/${snd_dir}"
         mkdir -p "${backup_dirs[$key]}/${backup_suffix}_${var_1}/${rcv_dir}"
-        echo "$key 백업 디렉토리 생성"
+        echo "$key Created backup directory"
     done
 }
 
@@ -38,7 +38,7 @@ move_files() {
         local exclude_path="${src_path}/${backup_suffix}_${var_1}"
         find "$src_path" -type f -newermt $var_2 ! -newermt $var_3 -name "$pattern" -not -path "$exclude_path/*" -exec mv {} "$dest_path" \;
     done
-    echo "파일 이동 완료"
+    echo "File movement complete"
 }
 
 # 디렉토리 이동 함수
