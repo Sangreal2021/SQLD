@@ -1,0 +1,66 @@
+#!/bin/bash
+echo "fileBackup.sh Script START"
+
+# 기본 설정 변수
+base_dir="/home/appian_storage/FILE"
+backup_suffix="bak"
+snd_dir="snd"
+rcv_dir="rcv"
+
+# 백업 대상 디렉토리
+declare -A backup_dirs=( ["AUTO"]="$base_dir/AUTO" ["EDI"]="$base_dir/EDI" )
+
+# 백업대상 파일연도 입력
+read -p "백업 파일연도(ex:2023): " var_1
+echo "파일연도 = $var_1"
+
+# 백업대상 기간 입력
+read -p "백업 시작일자(ex:20230101): " var_2
+echo "시작일자 = $var_2"
+read -p "백업 종료일자(ex:20240101): " var_3
+echo "종료일자 = $var_3"
+
+# 백업 디렉토리 생성 함수
+create_backup_dirs() {
+    for key in "${!backup_dirs[@]}"; do
+        mkdir -p "${backup_dirs[$key]}/${backup_suffix}_${var_1}/${snd_dir}"
+        mkdir -p "${backup_dirs[$key]}/${backup_suffix}_${var_1}/${rcv_dir}"
+        echo "$key 백업 디렉토리 생성"
+    done
+}
+
+# 파일 이동 함수
+move_files() {
+    local pattern="$1"
+    for key in "${!backup_dirs[@]}"; do
+        local src_path="${backup_dirs[$key]}"
+        local dest_path="${src_path}/${backup_suffix}_${var_1}/${snd_dir}"
+        local exclude_path="${src_path}/${backup_suffix}_${var_1}"
+        find "$src_path" -type f -newermt $var_2 ! -newermt $var_3 -name "$pattern" -not -path "$exclude_path/*" -exec mv {} "$dest_path" \;
+    done
+    echo "파일 이동 완료"
+}
+
+# 디렉토리 이동 함수
+move_dir() {
+    for key in "${!backup_dirs[@]}"; do
+        local src_path="${backup_dirs[$key]}"
+        for dir in "$src_path"/*; do
+            if [[ -d "$dir" ]]; then
+                dir_date=$(basename "$dir")
+                if [[ "$dir_date" =~ ^[0-9]{8}$ && "$dir_date" > "$var_2" && "$dir_date" < "$var_3" ]]; then
+                    mv "$dir" "${src_path}/${backup_suffix}_${var_1}/${rcv_dir}"
+                    echo "Moved $dir to ${src_path}/${backup_suffix}_${var_1}/${rcv_dir}"
+                fi
+            fi
+        done
+    done
+}
+
+# 백업 디렉토리 생성 및 파일, 디렉토리 이동 실행
+create_backup_dirs
+move_files "E*"
+move_files "ktcu*"
+move_dir
+
+echo "fileBackup.sh Script END"
