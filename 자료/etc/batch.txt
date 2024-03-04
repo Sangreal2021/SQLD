@@ -7,7 +7,7 @@ backup_suffix="bak"
 snd_dir="snd"
 rcv_dir="rcv"
 
-# 백업 대상 디렉토리
+# 백업 대상 디렉토리(배열 선언)
 declare -A backup_dirs=( ["AUTO"]="$base_dir/AUTO" ["EDI"]="$base_dir/EDI" )
 
 # 백업대상 파일연도 입력
