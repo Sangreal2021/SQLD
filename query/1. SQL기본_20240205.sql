@@ -45,7 +45,7 @@ DELETE FROM dept2 WHERE deptno = '1000';
 SELECT * FROM emp2;
 
 -- Q. EMP3 테이블에 DEPT3 테이블의 기본키 deptno 칼럼을 참조하는 외래키 dept_fk를
---	추가하고자 한다. 
+--	추가하고자 한다.
 ALTER TABLE		emp3
 ADD CONSTRAINT	dept3_fk FOREIGN KEY (deptno)
 REFERENCES		dept3 (deptno);
@@ -134,6 +134,8 @@ FROM USER_TABLES;
 --			INSERT INTO emp VALUES (exp1, exp2, ...);
 
 --		3) SELECT문으로 입력
+DROP TABLE dept3;
+
 CREATE TABLE dept3(
     deptno number(2,0),
     dname varchar2(14),

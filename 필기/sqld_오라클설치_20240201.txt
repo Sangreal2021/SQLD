@@ -55,3 +55,34 @@
 		
 -------------------------------------------------------------------------------------------------------------------
 
+2. Rocky Linux 설치
+	
+	(1) docker desktop 띄워놓기
+	
+	(2) Rocky Linux 이미지 검색
+
+		1) powershell 실행시키기
+		
+		2) Rocky Linux 찾기
+			docker search rockylinux
+			
+	(3) 원하는 이미지 다운로드
+		docker pull rockylinux/rockylinux
+			
+	(4) 다운로드된 이미지 확인
+		docker images
+			
+	(5) 이미지 실행시켜 컨테이너 설치 (Docker Desktop에서 확인)
+		docker run docker.io/rockylinux/rockylinux
+			
+	(6) 설치된 Linux 컨테이너에 진입
+		docker run -i -t docker.io/rockylinux/rockylinux /bin/bash
+			
+	(7) passwd 설치
+		계정생성 후 비번 설정시 passwd 미설치의 경우
+		sudo dnf install passwd
+	
+	(8) root 비번 재설정
+		root : admin123!
+		hiw : admin123!
+
