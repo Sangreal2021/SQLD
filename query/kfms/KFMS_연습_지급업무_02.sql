@@ -1,0 +1,1472 @@
+
+-- 경비/투자금지급 > 경비/투자금 지급실행
+SELECT A.AP_IF_MAST_PNO PNO
+	, B.AP_IF_DETAIL_PNO AS DETAIL_PNO
+	, A.REGI_DATE
+	, A.SVC_DIST
+	, A.REGI_NUM
+	, A.TRAD_GB
+	, A.VOTE_NO
+	, B.REGI_SEQ
+	, B.ATTACHTAG_SEQ
+	, A.KTCU_DEPT_NM
+	, A.KTCU_USER_NM
+	, A.TRAN_SET_DATE
+	, A.TRAD_NM
+	, B.IN_BANK_CD
+	, D.BANK_NM AS BANK_NM
+	, B.IN_ACCT_NO
+	, FN_ACCT_FORMAT(B.IN_BANK_CD, B.IN_ACCT_NO)  as FORMAT_IN_ACCT_NO
+	, B.TRAN_AMT || '' AS TRAN_AMT
+	, B.REGI_REF_NM
+	, B.IN_RMK
+	, A.AGNC_NAME
+	, C.DEPT_NAME AS FUND_DEPT_NM
+	, A.VRIFY_YN
+	, CASE WHEN A.VRIFY_YN = 'Y' AND TO_DATE(A.VRIFY_DT, 'YYYYMMDDHH24MISS') + 5/(24 * 60) > SYSDATE THEN 'N'
+		ELSE 'Y' END AS VRIFY_POSIBLE_YN
+	, CASE WHEN A.VRIFY_YN = 'N'  THEN '검증실패'
+		WHEN NVL(A.VRIFY_YN, 'N') != 'Y' OR TO_DATE(A.VRIFY_DT, 'YYYYMMDDHH24MISS') + 5/(24 * 60) <= SYSDATE THEN '미검증'
+		WHEN A.VRIFY_YN = 'Y'  THEN '검증완료' ELSE '' END AS VRIFY_TXT
+	, A.LAST_STATUS
+	, CD1.CMM_CD_NM AS LAST_STATUS_NM
+FROM AP_IF_MAST   A
+	, AP_IF_DETAIL B
+	, BA_ACCT_DEPT C
+	, BA_BANK      D
+	, DWC_CMM_CODE CD1
+	, BA_USER_GRP_ACCT_DEPT_A001_V V1
+	, BA_USER_GRP_PAY_DEPT_A001_V V2
+WHERE A.REGI_DATE      = B.REGI_DATE
+	AND A.SVC_DIST       = B.SVC_DIST
+	AND A.REGI_NUM       = B.REGI_NUM
+	AND A.TRAD_GB        = B.TRAD_GB
+	AND SUBSTR(B.IN_BANK_CD, -3)   != '004'
+	AND B.ELCTRN_PAY_NO IS NULL
+	AND B.IN_BANK_CD     = D.BANK_CD(+)
+	AND A.FUND_DEPT_CODE = C.DEPT_CODE(+)
+	AND A.LAST_STATUS    = CD1.CMM_CD(+)
+	AND CD1.GRP_CD(+)    = 'S043'
+	AND A.TRAD_GB        IN ('100','101','103')
+	AND A.LAST_STATUS    IN ('91', '32', '33')
+	AND A.TRAN_SET_DATE = '20240223'
+	AND A.AGNC_CODE      = V1.ACCT_DEPT_CD
+	AND V1.USER_ID       = 'SYSTEMADMIN'
+	AND A.TRAD_GB LIKE V1.TRAD_GB||'%'
+	AND A.FUND_DEPT_CODE = V2.PAY_DEPT_CD
+	AND V2.USER_ID       = 'SYSTEMADMIN'
+	AND A.TRAD_GB LIKE V2.TRAD_GB||'%'
+UNION ALL
+	SELECT A.PNO
+		, A.DETAIL_PNO
+		, A.REGI_DATE
+		, A.SVC_DIST
+		, A.REGI_NUM
+		, A.TRAD_GB
+		, A.VOTE_NO
+		, A.REGI_SEQ
+		, A.ATTACHTAG_SEQ
+		, A.KTCU_DEPT_NM
+		, A.KTCU_USER_NM
+		, A.TRAN_SET_DATE
+		, A.TRAD_NM
+		, A.IN_BANK_CD
+		, D.BANK_NM AS BANK_NM
+		, A.IN_ACCT_NO
+		, A.FORMAT_IN_ACCT_NO
+		, A.TRAN_AMT
+		, A.REGI_REF_NM
+		, A.IN_RMK
+		, A.AGNC_NAME
+		, C.DEPT_NAME AS FUND_DEPT_NM
+		, A.VRIFY_YN
+		, A.VRIFY_POSIBLE_YN
+		, A.VRIFY_TXT
+		, A.LAST_STATUS
+		, CD1.CMM_CD_NM AS LAST_STATUS_NM
+	FROM (
+			SELECT MIN(A.AP_IF_MAST_PNO)   AS PNO
+				, MIN(B.AP_IF_DETAIL_PNO) AS DETAIL_PNO
+				, MIN(A.REGI_DATE)        AS REGI_DATE
+				, MIN(A.SVC_DIST)         AS SVC_DIST
+				, MIN(A.REGI_NUM)         AS REGI_NUM
+				, MIN(A.TRAD_GB)          AS TRAD_GB
+				, MIN(A.VOTE_NO)          AS VOTE_NO
+				, MIN(B.REGI_SEQ)         AS REGI_SEQ
+				, MIN(B.ATTACHTAG_SEQ)    AS ATTACHTAG_SEQ
+				, MIN(A.KTCU_DEPT_NM)     AS KTCU_DEPT_NM
+				, MIN(A.KTCU_USER_NM)     AS KTCU_USER_NM
+				, MIN(A.TRAN_SET_DATE)    AS TRAN_SET_DATE
+				, MIN(A.TRAD_NM) || CASE WHEN COUNT(*) > 1 THEN '(' || COUNT(*) || '건)' END AS TRAD_NM
+				, MIN(B.IN_BANK_CD)       AS IN_BANK_CD
+				, MIN(B.IN_ACCT_NO)       AS IN_ACCT_NO
+				, MIN(FN_ACCT_FORMAT(B.IN_BANK_CD, B.IN_ACCT_NO))  as FORMAT_IN_ACCT_NO
+				, SUM(B.TRAN_AMT) || ''   AS TRAN_AMT
+				, MIN(B.REGI_REF_NM)      AS REGI_REF_NM
+				, MIN(B.IN_RMK)           AS IN_RMK
+				, MIN(A.AGNC_NAME)        AS AGNC_NAME
+				, MIN(A.VRIFY_YN)         AS VRIFY_YN
+				, MIN(CASE WHEN A.VRIFY_YN = 'Y' AND TO_DATE(A.VRIFY_DT, 'YYYYMMDDHH24MISS') + 5/(24 * 60) > SYSDATE THEN 'N'
+						ELSE 'Y'
+				   	  END) AS VRIFY_POSIBLE_YN
+				, MIN(CASE WHEN A.VRIFY_YN = 'N'  THEN '검증실패'
+						WHEN NVL(A.VRIFY_YN, 'N') != 'Y' OR TO_DATE(A.VRIFY_DT, 'YYYYMMDDHH24MISS') + 5/(24 * 60) <= SYSDATE THEN '미검증'
+						WHEN A.VRIFY_YN = 'Y'  THEN '검증완료'
+						ELSE ''
+				   END) AS VRIFY_TXT
+				, MIN(A.LAST_STATUS)     AS LAST_STATUS
+				, MIN(A.FUND_DEPT_CODE)  AS FUND_DEPT_CODE
+				, MIN(A.AGNC_CODE)       AS AGNC_CODE
+			FROM AP_IF_MAST   A
+				, AP_IF_DETAIL B
+			WHERE A.REGI_DATE      = B.REGI_DATE
+				AND A.SVC_DIST       = B.SVC_DIST
+				AND A.REGI_NUM       = B.REGI_NUM
+				AND A.TRAD_GB        = B.TRAD_GB
+				AND SUBSTR(B.IN_BANK_CD, -3)     = '004'
+				AND B.ELCTRN_PAY_NO IS NULL
+				AND A.TRAD_GB        IN ('100','101','103')
+				AND A.LAST_STATUS    IN ('91', '32', '33')
+				AND A.TRAN_SET_DATE = '20231115'
+			GROUP BY A.REGI_DATE, A.SVC_DIST, A.TRAD_GB, A.VOTE_NO, B.IN_BANK_CD, B.IN_ACCT_NO
+		) A
+		, BA_ACCT_DEPT					C
+		, BA_BANK						D
+		, DWC_CMM_CODE					CD1
+		, BA_USER_GRP_ACCT_DEPT_A001_V	V1
+		, BA_USER_GRP_PAY_DEPT_A001_V	V2
+	WHERE A.IN_BANK_CD     = D.BANK_CD(+)
+		AND A.FUND_DEPT_CODE = C.DEPT_CODE(+)
+		AND A.LAST_STATUS    = CD1.CMM_CD(+)
+		AND CD1.GRP_CD(+)    = 'S043'
+		AND A.AGNC_CODE      = V1.ACCT_DEPT_CD
+		AND V1.USER_ID       = 'SYSTEMADMIN'
+		AND A.TRAD_GB LIKE V1.TRAD_GB||'%'
+		AND A.FUND_DEPT_CODE = V2.PAY_DEPT_CD
+		AND V2.USER_ID       = 'SYSTEMADMIN'
+		AND A.TRAD_GB LIKE V2.TRAD_GB||'%'
+	ORDER BY VOTE_NO DESC, REGI_NUM ASC
+;
+
+
+
+-- 경비/투자금지급 > 경비/투자금 결과조회
+SELECT
+	TB2.AP_IF_DETAIL_PNO AS PNO
+	, TB2.AP_IF_DETAIL_PNO AS DETAIL_PNO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REGI_DATE     END AS REGI_DATE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.REGI_NUM  END AS REGI_NUM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAN_SET_DATE END AS TRAN_SET_DATE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.REGI_SEQ  END AS REGI_SEQ
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAN_DATE     END AS TRAN_DATE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAN_TIME     END AS TRAN_TIME
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAD_GB       END AS TRAD_GB
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.GUBUN         END AS GUBUN
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.DEPT_NM       END AS DEPT_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.USER_NM       END AS USER_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REGI_TIME     END AS REGI_TIME
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.BRIEF_TITLE   END AS BRIEF_TITLE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ERP_CD        END AS ERP_CD
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.OUT_ACCT_NO   END AS OUT_ACCT_NO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.END_GB        END AS END_GB
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.END_GB_NM     END AS END_GB_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.BANK_NM       END AS BANK_NM
+	, TB2.TRAN_AMT || '' AS TRAN_AMT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REGI_REF_NM   END AS REGI_REF_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.RRNO          END AS RRNO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.IN_RMK        END AS IN_RMK
+--	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ERR_MSG       END AS ERR_MSG
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE DECODE(TB2.END_GB, '1', ' ',  TB2.ERR_MSG  )     END AS ERR_MSG
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.PROC_STS      END AS PROC_STS
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.VOTE_NO       END AS VOTE_NO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ATTACHTAG_SEQ END AS ATTACHTAG_SEQ
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ERR_CNCL_TSYN END AS ERR_CNCL_TSYN
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.FUND_DEPT_NM  END AS FUND_DEPT_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ERR_YN        END AS ERR_YN
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.EXP_PI_ID     END AS EXP_PI_ID
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.OUT_BANK_CD   END AS OUT_BANK_CD
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.IN_BANK_CD    END AS IN_BANK_CD
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.IN_ACCT_NO    END AS IN_ACCT_NO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.DPSTR_INQIRE_SUCCES_YN  END AS DPSTR_INQIRE_SUCCES_YN
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.DPSTR_INQIRE_SUCCES_YN_NM  END AS DPSTR_INQIRE_SUCCES_YN_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.DPSTR_INQIRE_COMPARE_NM  END AS DPSTR_INQIRE_COMPARE_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.FORMAT_IN_ACCT_NO       END AS FORMAT_IN_ACCT_NO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.SEQ_NO       END AS SEQ_NO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.RE_SEARCH_YN END AS RE_SEARCH_YN
+	, TB2.GINFO
+FROM(
+		SELECT
+			AP_IF_DETAIL_PNO
+			, MAX(REGI_DATE    ) AS REGI_DATE
+			, MAX(REGI_NUM     ) AS REGI_NUM
+			, MAX(TRAN_SET_DATE) AS TRAN_SET_DATE
+			, MAX(REGI_SEQ     ) AS REGI_SEQ
+			, MAX(TRAN_DATE    ) AS TRAN_DATE
+			, MAX(TRAN_TIME    ) AS TRAN_TIME
+			, MAX(TRAD_GB      ) AS TRAD_GB
+			, MAX(GUBUN        ) AS GUBUN
+			, MAX(DEPT_NM      ) AS DEPT_NM
+			, MAX(USER_NM      ) AS USER_NM
+			, MAX(REGI_TIME    ) AS REGI_TIME
+			, MAX(BRIEF_TITLE  ) AS BRIEF_TITLE
+			, MAX(ERP_CD       ) AS ERP_CD
+			, MAX(OUT_ACCT_NO  ) AS OUT_ACCT_NO
+			, MAX(END_GB       ) AS END_GB
+			, MAX(END_GB_NM    ) AS END_GB_NM
+			, MAX(BANK_NM      ) AS BANK_NM
+			, SUM(TRAN_AMT) AS TRAN_AMT
+			, MAX(REGI_REF_NM  ) AS REGI_REF_NM
+			, MAX(RRNO         ) AS RRNO
+			, MAX(IN_RMK       ) AS IN_RMK
+			, MAX(ERR_MSG      ) AS ERR_MSG
+			, MAX(PROC_STS     ) AS PROC_STS
+			, MAX(VOTE_NO      ) AS VOTE_NO
+			, MAX(ATTACHTAG_SEQ) AS ATTACHTAG_SEQ
+			, MAX(ERR_CNCL_TSYN) AS ERR_CNCL_TSYN
+			, MAX(FUND_DEPT_NM ) AS FUND_DEPT_NM
+			, MAX(ERR_YN       ) AS ERR_YN
+			, MAX(OUT_BANK_CD  ) AS OUT_BANK_CD
+			, MAX(IN_BANK_CD   ) AS IN_BANK_CD
+			, MAX(IN_ACCT_NO   ) AS IN_ACCT_NO
+			, MAX(EXP_PI_ID    ) AS EXP_PI_ID
+			, MAX(DPSTR_INQIRE_SUCCES_YN)    AS DPSTR_INQIRE_SUCCES_YN
+			, MAX(DPSTR_INQIRE_SUCCES_YN_NM) AS DPSTR_INQIRE_SUCCES_YN_NM
+			, MAX(DPSTR_INQIRE_COMPARE_NM)   AS DPSTR_INQIRE_COMPARE_NM
+			, MAX(FORMAT_IN_ACCT_NO)         AS FORMAT_IN_ACCT_NO
+			, MAX(SEQ_NO)                                    AS SEQ_NO
+			, MAX(RE_SEARCH_YN)                              AS RE_SEARCH_YN
+			, GROUPING(TB.AP_IF_DETAIL_PNO)  AS GINFO
+		FROM (
+			SELECT
+				B.AP_IF_DETAIL_PNO
+				, A.REGI_DATE
+				, A.REGI_NUM
+				, A.TRAN_SET_DATE
+				, B.REGI_SEQ
+				, B.TRAN_DATE
+				, B.TRAN_TIME
+				, A.TRAD_GB
+				, DECODE(A.TRAD_GB,'100','일반경비','101','투자금','102','법인예탁급여','103','환전') AS GUBUN
+				, A.KTCU_DEPT_NM AS DEPT_NM
+				, A.KTCU_USER_NM AS USER_NM
+				, A.REGI_TIME
+				, A.BRIEF_TITLE
+				, A.ERP_CD
+				, FN_ACCT_FORMAT(A.OUT_BANK_CD, A.OUT_ACCT_NO)  AS OUT_ACCT_NO
+				, B.END_GB
+				, CD.CD_DESC AS END_GB_NM
+				, BK.BANK_NM
+				, B.IN_BANK_CD
+				, B.IN_ACCT_NO
+				, FN_ACCT_FORMAT(B.IN_BANK_CD, B.IN_ACCT_NO) AS FORMAT_IN_ACCT_NO
+				, B.TRAN_AMT
+				, B.REGI_REF_NM
+				, B.RRNO
+				, B.IN_RMK
+				, B.OUT_BANK_CD
+				, F_ERR_MSG(B.IN_BANK_CD,B.PROC_STS,'2', B.ORG_CD) AS ERR_MSG
+				, B.PROC_STS
+				, NVL(B.VOTE_NO,A.VOTE_NO) AS VOTE_NO
+				, B.ATTACHTAG_SEQ
+				, B.ERR_CNCL_TSYN
+				, E.DEPT_NAME AS FUND_DEPT_NM
+				, CASE WHEN B.END_GB = '5' THEN 'Y' ELSE 'N' END AS ERR_YN
+				, B.DPSTR_INQIRE_SUCCES_YN
+				, CASE WHEN B.DPSTR_INQIRE_SUCCES_YN = 'Y' THEN '성공'
+					   WHEN B.DPSTR_INQIRE_SUCCES_YN = 'N' THEN '실패'
+					   ELSE '' END      AS DPSTR_INQIRE_SUCCES_YN_NM
+				, CASE WHEN B.DPSTR_INQIRE_SUCCES_YN = 'Y' AND SUBSTR(B.REGI_REF_NM,1,LENGTH(B.FIND_REF_NM)) = B.FIND_REF_NM THEN '일치'
+				WHEN B.DPSTR_INQIRE_SUCCES_YN = 'Y' AND SUBSTR(B.REGI_REF_NM,1,LENGTH(B.FIND_REF_NM)) != B.FIND_REF_NM THEN '불일치'
+				ELSE '' END AS DPSTR_INQIRE_COMPARE_NM /* 예금주명조회 일치여부 */
+				, A.EXP_PI_ID
+				, F.SEQ_NO
+				, CASE WHEN B.PROC_STS = '9997' THEN 'Y' ELSE 'N' END AS RE_SEARCH_YN
+			FROM AP_IF_MAST A
+				, AP_IF_DETAIL B
+				, DWC_ASSIGN_INFO C
+				, BA_ACCT_DEPT E
+				, MB_TRANSFR_DIRECT F
+				, BA_BANK BK
+				, DWC_CMM_CODE CD
+				, BA_USER_GRP_ACCT_DEPT_A001_V V1
+				, BA_USER_GRP_PAY_DEPT_A001_V V2
+				, BA_USER_GRP_ACCT_A001_V V3
+			WHERE A.REGI_DATE                       = B.REGI_DATE
+				AND A.SVC_DIST                        = B.SVC_DIST
+				AND A.REGI_NUM                        = B.REGI_NUM
+				AND A.TRAD_GB                         = B.TRAD_GB
+				AND A.AGNC_CODE                       = V1.ACCT_DEPT_CD
+				AND B.IN_BANK_CD                      = BK.BANK_CD(+)
+				AND SUBSTR(B.IN_BANK_CD,-3)     != '004'
+				AND CD.GRP_CD(+)                      = 'S049'
+				AND CD.CMM_CD(+)                      = B.END_GB
+				AND V1.USER_ID                        = 'SYSTEMADMIN'
+				AND A.TRAD_GB                                         LIKE V1.TRAD_GB||'%'
+				AND A.FUND_DEPT_CODE                  = V2.PAY_DEPT_CD
+				AND V2.USER_ID                        = 'SYSTEMADMIN'
+				AND A.TRAD_GB                                         LIKE V2.TRAD_GB||'%'
+				AND V3.USER_ID                        = 'SYSTEMADMIN'
+				AND NVL(C.ACCT_SEQ, 'NOT')            = V3.ACCT_SEQ
+				AND C.FINAL_APPR_YN(+)                        = 'Y'
+				AND A.EXP_PI_ID                       = C.PI_ID(+)
+				AND B.ELCTRN_PAY_NO                           IS NULL
+				AND A.TRAD_GB                         IN ('100','101','103')
+				AND A.LAST_STATUS                     IN ('10','20','30','31','51','52','55')
+				AND A.FUND_DEPT_CODE                  = E.DEPT_CODE(+)
+				AND A.TRAN_SET_DATE                   BETWEEN '20231101' and '20231120'
+				AND B.AP_IF_DETAIL_PNO                = F.BIZ_PNO(+)
+				AND B.END_GB IN ('0', '1', '5', '9')
+        UNION ALL
+        SELECT
+              MIN(B.AP_IF_DETAIL_PNO)                           AS AP_IF_DETAIL_PNO
+            , MIN(A.REGI_DATE)                                          AS REGI_DATE
+            , MIN(A.REGI_NUM)                                           AS REGI_NUM
+            , MIN(A.TRAN_SET_DATE)                                      AS TRAN_SET_DATE
+            , MIN(B.REGI_SEQ)                                           AS REGI_SEQ
+            , MIN(B.TRAN_DATE)                                          AS TRAN_DATE
+            , MIN(B.TRAN_TIME)                                          AS TRAN_TIME
+            , MIN(A.TRAD_GB)                                            AS TRAD_GB
+            , DECODE(MIN(A.TRAD_GB),'100','일반경비','101','투자금','102','법인예탁급여','103','환전') AS GUBUN
+            , MIN(A.KTCU_DEPT_NM)                               AS DEPT_NM
+            , MIN(A.KTCU_USER_NM)                                       AS USER_NM
+            , MIN(A.REGI_TIME)                                          AS REGI_TIME
+            , MIN(A.BRIEF_TITLE)                                        AS BRIEF_TITLE
+            , MIN(A.ERP_CD)                                             AS ERP_CD
+            , FN_ACCT_FORMAT(MIN(A.OUT_BANK_CD), MIN(A.OUT_ACCT_NO))  AS OUT_ACCT_NO
+            , MIN(B.END_GB)                                             AS END_GB
+            , MIN(CD.CD_DESC)                                           AS END_GB_NM
+            , MIN(BK.BANK_NM)                                           AS BANK_NM
+            , MIN(B.IN_BANK_CD)                                 AS IN_BANK_CD
+            , MIN(B.IN_ACCT_NO)                                 AS IN_ACCT_NO
+            , FN_ACCT_FORMAT(MIN(B.IN_BANK_CD), MIN(B.IN_ACCT_NO)) AS FORMAT_IN_ACCT_NO
+            , SUM(B.TRAN_AMT)                                           AS TRAN_AMT
+            , MIN(B.REGI_REF_NM)                                        AS REGI_REF_NM
+            , MIN(B.RRNO)                                                       AS RRNO
+            , MIN(B.IN_RMK)                                             AS IN_RMK
+            , MIN(B.OUT_BANK_CD)                                        AS OUT_BANK_CD
+            , F_ERR_MSG(MIN(B.IN_BANK_CD),MIN(B.PROC_STS),'2', MIN(B.ORG_CD)) AS ERR_MSG
+            , MIN(B.PROC_STS)                                           AS PROC_STS
+            , NVL(MIN(B.VOTE_NO),MIN(A.VOTE_NO))        AS VOTE_NO
+            , MIN(B.ATTACHTAG_SEQ)                                      AS ATTACHTAG_SEQ
+            , MIN(B.ERR_CNCL_TSYN)                                      AS ERR_CNCL_TSYN
+            , MIN(E.DEPT_NAME)                                      AS FUND_DEPT_NM
+            , CASE WHEN MIN(B.END_GB) = '5' THEN 'Y' ELSE 'N' END AS ERR_YN
+            , MIN(B.DPSTR_INQIRE_SUCCES_YN)                 AS DPSTR_INQIRE_SUCCES_YN
+            , DECODE(MIN(B.DPSTR_INQIRE_SUCCES_YN), 'Y', '성공', 'N', '실패', '') AS DPSTR_INQIRE_SUCCES_YN_NM
+            , CASE WHEN MIN(B.DPSTR_INQIRE_SUCCES_YN) = 'Y' AND SUBSTR(MIN(B.REGI_REF_NM),1,LENGTH(MIN(B.FIND_REF_NM))) = MIN(B.FIND_REF_NM) THEN '일치'
+                   WHEN MIN(B.DPSTR_INQIRE_SUCCES_YN) = 'Y' AND SUBSTR(MIN(B.REGI_REF_NM),1,LENGTH(MIN(B.FIND_REF_NM))) != MIN(B.FIND_REF_NM) THEN '불일치'
+                ELSE '' END AS DPSTR_INQIRE_COMPARE_NM /* 예금주명조회 일치여부 */
+            , MIN(A.EXP_PI_ID)                                          AS EXP_PI_ID
+            , MAX(F.SEQ_NO)                                                     AS SEQ_NO
+            , CASE WHEN MIN(B.PROC_STS) = '9997' THEN 'Y' ELSE 'N' END AS RE_SEARCH_YN
+        FROM AP_IF_MAST A
+           , AP_IF_DETAIL B
+           , DWC_ASSIGN_INFO C
+           , BA_ACCT_DEPT E
+           , MB_TRANSFR_DIRECT F
+           , BA_BANK BK
+           , DWC_CMM_CODE CD
+           , BA_USER_GRP_ACCT_DEPT_A001_V V1
+           , BA_USER_GRP_PAY_DEPT_A001_V V2
+           , BA_USER_GRP_ACCT_A001_V V3
+        WHERE A.REGI_DATE                       = B.REGI_DATE
+			AND A.SVC_DIST                        = B.SVC_DIST
+			AND A.REGI_NUM                        = B.REGI_NUM
+			AND A.TRAD_GB                         = B.TRAD_GB
+			AND A.AGNC_CODE                       = V1.ACCT_DEPT_CD
+			AND B.IN_BANK_CD                      = BK.BANK_CD(+)
+			AND SUBSTR(B.IN_BANK_CD,-3)   		= '004'
+			AND CD.GRP_CD(+)                      = 'S049'
+			AND CD.CMM_CD(+)                      = B.END_GB
+			AND V1.USER_ID                        = 'SYSTEMADMIN'
+			AND A.TRAD_GB                         LIKE V1.TRAD_GB||'%'
+			AND A.FUND_DEPT_CODE                  = V2.PAY_DEPT_CD
+			AND V2.USER_ID                        = 'SYSTEMADMIN'
+			AND A.TRAD_GB                         LIKE V2.TRAD_GB||'%'
+			AND V3.USER_ID                        = 'SYSTEMADMIN'
+			AND NVL(C.ACCT_SEQ, 'NOT')    = V3.ACCT_SEQ
+			AND C.FINAL_APPR_YN(+)                = 'Y'
+			AND A.EXP_PI_ID                       = C.PI_ID(+)
+			AND B.ELCTRN_PAY_NO                   IS NULL
+			AND A.TRAD_GB                         IN ('100','101','103')
+			AND A.LAST_STATUS                     IN ('10','20','30','31','51','52','55')
+			AND A.FUND_DEPT_CODE                  = E.DEPT_CODE(+)
+			AND A.TRAN_SET_DATE                   BETWEEN '20231101' and '20231120'
+			AND B.AP_IF_DETAIL_PNO                = F.BIZ_PNO(+)
+			AND B.TRAN_DATE                       = F.TRAD_DATE(+)
+			AND B.TRAN_TIME                       = F.TRAN_TIME(+)
+			AND B.END_GB IN ('0', '1', '5', '9')
+        GROUP BY B.REGI_DATE, B.SVC_DIST, B.TRAD_GB, B.IN_BANK_CD, B.IN_ACCT_NO, B.VOTE_NO
+        ) TB
+	GROUP BY ROLLUP(AP_IF_DETAIL_PNO)
+	) TB2
+ORDER BY TB2.GINFO, TB2.TRAN_SET_DATE DESC, TB2.VOTE_NO, TO_NUMBER(TB2.ATTACHTAG_SEQ) ASC
+;
+
+
+
+-- 경비/투자금지급 > 투자금 지급결과(조회용)
+SELECT
+	TB2.PNO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REGI_DATE     END AS REGI_DATE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.REGI_NUM  END AS REGI_NUM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAN_SET_DATE END AS TRAN_SET_DATE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.REGI_SEQ  END AS REGI_SEQ
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAN_DATE     END AS TRAN_DATE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAN_TIME     END AS TRAN_TIME
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAD_GB       END AS TRAD_GB
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.GUBUN         END AS GUBUN
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.DEPT_NM       END AS DEPT_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.USER_NM       END AS USER_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REGI_TIME     END AS REGI_TIME
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.BRIEF_TITLE   END AS BRIEF_TITLE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ERP_CD        END AS ERP_CD
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.OUT_ACCT_NO   END AS OUT_ACCT_NO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.END_GB        END AS END_GB
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.END_GB_NM     END AS END_GB_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.BANK_NM       END AS BANK_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.IN_ACCT_NO    END AS IN_ACCT_NO
+	, TB2.TRAN_AMT || '' AS TRAN_AMT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REGI_REF_NM   END AS REGI_REF_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.RRNO          END AS RRNO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.IN_RMK        END AS IN_RMK
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ERR_MSG       END AS ERR_MSG
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.PROC_STS      END AS PROC_STS
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.VOTE_NO       END AS VOTE_NO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ATTACHTAG_SEQ END AS ATTACHTAG_SEQ
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ERR_CNCL_TSYN END AS ERR_CNCL_TSYN
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ERR_CNCL_TSYN_NM END AS ERR_CNCL_TSYN_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.FUND_DEPT_NM  END AS FUND_DEPT_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ERR_YN        END AS ERR_YN
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.DPSTR_INQIRE_SUCCES_YN     END AS DPSTR_INQIRE_SUCCES_YN
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.DPSTR_INQIRE_SUCCES_YN_NM  END AS DPSTR_INQIRE_SUCCES_YN_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.DPSTR_INQIRE_COMPARE_NM    END AS DPSTR_INQIRE_COMPARE_NM
+	, TB2.GINFO
+FROM(
+	SELECT
+		PNO
+		, MAX(REGI_DATE    ) AS REGI_DATE
+		, MAX(REGI_NUM     ) AS REGI_NUM
+		, MAX(TRAN_SET_DATE) AS TRAN_SET_DATE
+		, MAX(REGI_SEQ     ) AS REGI_SEQ
+		, MAX(TRAN_DATE    ) AS TRAN_DATE
+		, MAX(TRAN_TIME    ) AS TRAN_TIME
+		, MAX(TRAD_GB      ) AS TRAD_GB
+		, MAX(GUBUN        ) AS GUBUN
+		, MAX(DEPT_NM      ) AS DEPT_NM
+		, MAX(USER_NM      ) AS USER_NM
+		, MAX(REGI_TIME    ) AS REGI_TIME
+		, MAX(BRIEF_TITLE  ) AS BRIEF_TITLE
+		, MAX(ERP_CD       ) AS ERP_CD
+		, MAX(OUT_ACCT_NO  ) AS OUT_ACCT_NO
+		, MAX(END_GB       ) AS END_GB
+		, MAX(END_GB_NM    ) AS END_GB_NM
+		, MAX(BANK_NM      ) AS BANK_NM
+		, MAX(IN_ACCT_NO   ) AS IN_ACCT_NO
+		, SUM(TRAN_AMT) AS TRAN_AMT
+		, MAX(REGI_REF_NM  ) AS REGI_REF_NM
+		, MAX(RRNO         ) AS RRNO
+		, MAX(IN_RMK       ) AS IN_RMK
+		, MAX(ERR_MSG      ) AS ERR_MSG
+		, MAX(PROC_STS     ) AS PROC_STS
+		, MAX(VOTE_NO      ) AS VOTE_NO
+		, MAX(ATTACHTAG_SEQ) AS ATTACHTAG_SEQ
+		, MAX(ERR_CNCL_TSYN) AS ERR_CNCL_TSYN
+		, MAX(ERR_CNCL_TSYN_NM) AS ERR_CNCL_TSYN_NM
+		, MAX(FUND_DEPT_NM ) AS FUND_DEPT_NM
+		, MAX(ERR_YN       ) AS ERR_YN
+		, MAX(DPSTR_INQIRE_SUCCES_YN)    AS DPSTR_INQIRE_SUCCES_YN
+		, MAX(DPSTR_INQIRE_SUCCES_YN_NM) AS DPSTR_INQIRE_SUCCES_YN_NM
+		, MAX(DPSTR_INQIRE_COMPARE_NM)   AS DPSTR_INQIRE_COMPARE_NM
+		, GROUPING(TB.PNO) AS GINFO
+	FROM (
+		SELECT
+			B.AP_IF_DETAIL_PNO AS PNO
+			, A.REGI_DATE
+			, A.REGI_NUM
+			, A.TRAN_SET_DATE
+			, B.REGI_SEQ
+			, B.TRAN_DATE
+			, B.TRAN_TIME
+			, A.TRAD_GB
+			, DECODE(A.TRAD_GB,'100','일반경비','101','투자금','102','법인예탁급여','103','환전') AS GUBUN
+			, A.KTCU_DEPT_NM AS DEPT_NM
+			, A.KTCU_USER_NM AS USER_NM
+			, A.REGI_TIME
+			, A.BRIEF_TITLE
+			, A.ERP_CD
+			, FN_ACCT_FORMAT(B.OUT_BANK_CD, B.OUT_ACCT_NO)  AS OUT_ACCT_NO
+			, B.END_GB
+			, CD.CD_DESC AS END_GB_NM
+			, BK.BANK_NM
+			, FN_ACCT_FORMAT(B.IN_BANK_CD, B.IN_ACCT_NO) AS IN_ACCT_NO
+			, B.TRAN_AMT
+			, B.REGI_REF_NM
+			, B.RRNO
+			, B.IN_RMK
+			, F_ERR_MSG(B.OUT_BANK_CD,B.PROC_STS,'2', B.ORG_CD) AS ERR_MSG
+			, B.PROC_STS
+			, NVL(B.VOTE_NO,A.VOTE_NO) AS VOTE_NO
+			, B.ATTACHTAG_SEQ
+			, B.ERR_CNCL_TSYN
+			, DECODE(B.ERR_CNCL_TSYN, 'Y', '취소', '') AS ERR_CNCL_TSYN_NM
+			, E.DEPT_NAME AS FUND_DEPT_NM
+			, CASE WHEN B.END_GB = '5' THEN 'Y' ELSE 'N' END AS ERR_YN
+			, B.DPSTR_INQIRE_SUCCES_YN
+			, DECODE(B.DPSTR_INQIRE_SUCCES_YN, 'Y', '성공', '실패') AS DPSTR_INQIRE_SUCCES_YN_NM
+			, CASE WHEN B.DPSTR_INQIRE_SUCCES_YN = 'Y' AND SUBSTR(B.REGI_REF_NM,1,LENGTH(B.FIND_REF_NM)) = B.FIND_REF_NM THEN '일치'
+			WHEN B.DPSTR_INQIRE_SUCCES_YN = 'Y' AND SUBSTR(B.REGI_REF_NM,1,LENGTH(B.FIND_REF_NM)) != B.FIND_REF_NM THEN '불일치'
+			ELSE '' END AS DPSTR_INQIRE_COMPARE_NM /* 예금주명조회 일치여부 */
+		FROM AP_IF_MAST      A
+			, AP_IF_DETAIL    B
+			, DWC_ASSIGN_INFO C
+			, BA_ACCT_DEPT    E
+			, BA_BANK         BK
+			, DWC_CMM_CODE    CD
+			, BA_USER_GRP_ACCT_DEPT_A001_V V1
+			, BA_USER_GRP_PAY_DEPT_A001_V  V2
+			, BA_USER_GRP_ACCT_A001_V      V3
+		WHERE A.REGI_DATE                       = B.REGI_DATE
+			AND A.SVC_DIST                          = B.SVC_DIST
+			AND A.REGI_NUM                          = B.REGI_NUM
+			AND A.TRAD_GB                           = B.TRAD_GB
+			AND A.AGNC_CODE                         = V1.ACCT_DEPT_CD
+			AND B.IN_BANK_CD                        = BK.BANK_CD(+)
+			AND SUBSTR(B.IN_BANK_CD,-3)     != '004'
+			AND CD.GRP_CD(+)                        = 'S049'
+			AND CD.CMM_CD(+)                        = B.END_GB
+			AND V1.USER_ID                          = 'SYSTEMADMIN'
+			AND A.TRAD_GB                                   LIKE V1.TRAD_GB||'%'
+			AND A.FUND_DEPT_CODE                    = V2.PAY_DEPT_CD
+			AND V2.USER_ID                          = 'SYSTEMADMIN'
+			AND A.TRAD_GB                                   LIKE V2.TRAD_GB||'%'
+			AND V3.USER_ID                          = 'SYSTEMADMIN'
+			AND V3.ACCT_SEQ                         = NVL(C.ACCT_SEQ, 'NOT')
+			AND C.FINAL_APPR_YN(+)                  = 'Y'
+			AND A.EXP_PI_ID                         = C.PI_ID(+)
+			AND A.TRAD_GB                           IN ('101','103')
+			AND A.LAST_STATUS                               IN ('20','30','31','51','52','55')
+			AND A.FUND_DEPT_CODE                    = E.DEPT_CODE(+)
+			AND A.TRAN_SET_DATE                             BETWEEN '20231101' and '20231120'
+		UNION ALL
+		SELECT
+			MIN(B.AP_IF_DETAIL_PNO)                         AS PNO
+			, MIN(A.REGI_DATE)                                      AS REGI_DATE
+			, MIN(A.REGI_NUM)                                       AS REGI_NUM
+			, MIN(A.TRAN_SET_DATE)                          AS TRAN_SET_DATE
+			, MIN(B.REGI_SEQ)                                       AS REGI_SEQ
+			, MIN(B.TRAN_DATE)                                      AS TRAN_DATE
+			, MIN(B.TRAN_TIME)                                      AS TRAN_TIME
+			, MIN(A.TRAD_GB)                                        AS TRAD_GB
+			, DECODE(MIN(A.TRAD_GB),'100','일반경비','101','투자금','102','법인예탁급여','103','환전') AS GUBUN
+			, MIN(A.KTCU_DEPT_NM)                           AS DEPT_NM
+			, MIN(A.KTCU_USER_NM)                           AS USER_NM
+			, MIN(A.REGI_TIME)                                      AS REGI_TIME
+			, MIN(A.BRIEF_TITLE)                            AS BRIEF_TITLE
+			, MIN(A.ERP_CD)                                 AS ERP_CD
+			, FN_ACCT_FORMAT(MIN(B.OUT_BANK_CD), MIN(B.OUT_ACCT_NO))  AS OUT_ACCT_NO
+			, MIN(B.END_GB)                                 AS END_GB
+			, MIN(CD.CD_DESC)                                       AS END_GB_NM
+			, MIN(BK.BANK_NM)                                       AS BANK_NM
+			, FN_ACCT_FORMAT(MIN(B.IN_BANK_CD), MIN(B.IN_ACCT_NO)) AS IN_ACCT_NO
+			, SUM(B.TRAN_AMT)                                       AS TRAN_AMT
+			, MIN(B.REGI_REF_NM)                            AS REGI_REF_NM
+			, MIN(B.RRNO)                                           AS RRNO
+			, MIN(B.IN_RMK)                                 AS IN_RMK
+			, F_ERR_MSG(MIN(B.OUT_BANK_CD),MIN(B.PROC_STS),'2', MIN(B.ORG_CD)) AS ERR_MSG
+			, MIN(B.PROC_STS)                                       AS PROC_STS
+			, NVL(MIN(B.VOTE_NO),MIN(A.VOTE_NO)) AS VOTE_NO
+			, MIN(B.ATTACHTAG_SEQ)                          AS ATTACHTAG_SEQ
+			, MIN(B.ERR_CNCL_TSYN)                          AS ERR_CNCL_TSYN
+			, DECODE(MIN(B.ERR_CNCL_TSYN), 'Y', '취소', '') AS ERR_CNCL_TSYN_NM
+			, MIN(E.DEPT_NAME)                              AS FUND_DEPT_NM
+			, CASE WHEN MIN(B.END_GB) = '5' THEN 'Y' ELSE 'N' END AS ERR_YN
+			, MIN(B.DPSTR_INQIRE_SUCCES_YN) AS DPSTR_INQIRE_SUCCES_YN
+			, DECODE(MIN(B.DPSTR_INQIRE_SUCCES_YN), 'Y', '성공', '실패') AS DPSTR_INQIRE_SUCCES_YN_NM
+			, CASE WHEN MIN(B.DPSTR_INQIRE_SUCCES_YN) = 'Y' AND SUBSTR(MIN(B.REGI_REF_NM),1,LENGTH(MIN(B.FIND_REF_NM))) = MIN(B.FIND_REF_NM) THEN '일치'
+			WHEN MIN(B.DPSTR_INQIRE_SUCCES_YN) = 'Y' AND SUBSTR(MIN(B.REGI_REF_NM),1,LENGTH(MIN(B.FIND_REF_NM))) != MIN(B.FIND_REF_NM) THEN '불일치'
+			ELSE '' END AS DPSTR_INQIRE_COMPARE_NM /* 예금주명조회 일치여부 */
+		FROM AP_IF_MAST A
+			, AP_IF_DETAIL B
+			, DWC_ASSIGN_INFO C
+			, BA_ACCT_DEPT E
+			, BA_BANK BK
+			, DWC_CMM_CODE CD
+			, BA_USER_GRP_ACCT_DEPT_A001_V V1
+			, BA_USER_GRP_PAY_DEPT_A001_V V2
+			, BA_USER_GRP_ACCT_A001_V V3
+		WHERE A.REGI_DATE                       = B.REGI_DATE
+			AND A.SVC_DIST                          = B.SVC_DIST
+			AND A.REGI_NUM                          = B.REGI_NUM
+			AND A.TRAD_GB                           = B.TRAD_GB
+			AND A.AGNC_CODE                         = V1.ACCT_DEPT_CD
+			AND B.IN_BANK_CD                        = BK.BANK_CD(+)
+			AND SUBSTR(B.IN_BANK_CD,-3)      = '004'
+			AND CD.GRP_CD(+)                        = 'S049'
+			AND CD.CMM_CD(+)                        = B.END_GB
+			AND V1.USER_ID                          = 'SYSTEMADMIN'
+			AND A.TRAD_GB                                   LIKE V1.TRAD_GB||'%'
+			AND A.FUND_DEPT_CODE                    = V2.PAY_DEPT_CD
+			AND V2.USER_ID                          = 'SYSTEMADMIN'
+			AND A.TRAD_GB                                   LIKE V2.TRAD_GB||'%'
+			AND V3.USER_ID                          = 'SYSTEMADMIN'
+			AND V3.ACCT_SEQ                         = NVL(C.ACCT_SEQ, 'NOT')
+			AND C.FINAL_APPR_YN(+)                  = 'Y'
+			AND A.EXP_PI_ID                         = C.PI_ID(+)
+			AND A.TRAD_GB                           IN ('101','103')
+			AND A.LAST_STATUS                               IN ('20','30','31','51','52','55')
+			AND A.FUND_DEPT_CODE                    = E.DEPT_CODE(+)
+			AND A.TRAN_SET_DATE                             BETWEEN '20231101' and '20231120'
+		GROUP BY B.REGI_DATE, B.SVC_DIST, B.TRAD_GB, B.IN_BANK_CD, B.IN_ACCT_NO, B.VOTE_NO
+		) TB
+GROUP BY ROLLUP(PNO)
+) TB2
+ORDER BY TB2.GINFO, TB2.TRAN_SET_DATE DESC, TB2.REGI_NUM DESC, TB2.REGI_SEQ, TB2.TRAN_TIME DESC
+;
+
+
+
+-- 지로납부 > 지로납부
+SELECT
+	TB.PNO /*필수값*/
+	,  TB.SLR_KND_DSCD AS SLR_KND_DSCD
+	, TB.SLR_KND_DSCD_TXT AS SLR_KND_DSCD_TXT
+	, TB.REGI_DATE AS REGI_DATE
+	, TB.SVC_DIST AS SVC_DIST
+	, TB.REGI_NUM AS REGI_NUM
+	, TB.VOTE_NO AS VOTE_NO
+	, TB.ERP_CD AS ERP_CD
+	, TB.DEPT_NM AS DEPT_NM
+	, TB.KTCU_USER_ID AS KTCU_USER_ID
+	, TB.USER_NM AS USER_NM
+	, TB.KTCU_REG_DT AS KTCU_REG_DT
+	, TB.TRAN_SET_DATE AS TRAN_SET_DATE
+	, TB.BRIEF_TITLE AS BRIEF_TITLE
+	, TB.REGI_CNT AS REGI_CNT
+	, REGI_AMT AS REGI_AMT
+	, TB.TRAD_NM AS TRAD_NM
+	, TB.OUT_BANK_CD AS OUT_BANK_CD
+	, TB.FORMAT_OUT_ACCT_NO AS FORMAT_OUT_ACCT_NO
+	, TB.OUT_ACCT_NO AS OUT_ACCT_NO
+	, TB.OUT_ACCT_SEQ AS OUT_ACCT_SEQ
+	, TB.TRAD_GB AS TRAD_GB
+	, TB.LAST_SAN_USER_ID AS LAST_SAN_USER_ID
+	, TB.LAST_SAN_USER_NM AS LAST_SAN_USER_NM
+	, TB.ATTACHTAG_SEQ AS ATTACHTAG_SEQ
+	, TB.ELCTRN_PAY_NO AS ELCTRN_PAY_NO
+	, TB.PAY_SE AS PAY_SE
+	, TB.PAY_SE_NM AS PAY_SE_NM
+	, TB.TRAN_AMT AS TRAN_AMT
+	, TB.GIRO_NO AS GIRO_NO
+	, TB.DEDT_BEFORE_YMD AS DEDT_BEFORE_YMD
+	, TB.LEVY_YM                          /*납부년월  */
+	, B.LEVY_YM
+	, TB.LAST_STATUS AS LAST_STATUS
+	, TB.LAST_STATUS_NM AS LAST_STATUS_NM
+	, CASE  WHEN  B.PROC_STS  =  '000'  THEN  '기처리'  ELSE  CASE  WHEN  B.PROC_STS IS NULL THEN  '처리대상'  ELSE  '기처리에러'  END  END  AS  PRC_STATUS
+	, (SELECT ERR_MSG FROM COM_ERRCDMST
+		WHERE 1=1
+			AND ORG_CD = 'KB_GIRO'
+			AND ERR_CD = B.PROC_STS) AS ERR_MSG
+FROM (
+	SELECT
+		   A.AP_IF_MAST_PNO AS PNO
+		 , A.SLR_KND_DSCD  /* 급여종류코드(지급구분) */
+		 , CD1.CMM_CD_NM AS SLR_KND_DSCD_TXT
+		 , A.REGI_DATE     /*등록일자(KEY)*/
+		 , A.SVC_DIST      /*시스템구분(KEY)*/
+		 , A.REGI_NUM      /*등록일련번호(KEY) */
+		 , A.VOTE_NO       /*결의서번호*/
+		 , A.ERP_CD        /*발의부서*/
+		 , DECODE(A.KTCU_DEPT_NM,
+				  '',
+				 (SELECT DEPT_NM
+					FROM DWC_DEPT_MSTR D, DWC_USER_MSTR B
+				   WHERE B.USER_ID=A.KTCU_USER_ID
+					 AND B.DEPT_CD=D.DEPT_CD ),
+				  A.KTCU_DEPT_NM) AS DEPT_NM/*발의부서명*/
+		 , A.KTCU_USER_ID  /*발의부서 처리자 ID(발의자)*/
+		 , A.KTCU_USER_NM AS USER_NM       /*발의부서 처리자명(발의자명)*/
+		 , A.KTCU_REG_DT   /*발의부서 결재일시(전송일자) */
+		 , A.TRAN_SET_DATE /*지급일자*/
+		 , A.BRIEF_TITLE   /*적요*/
+		 , A.REGI_CNT      /*등록건수(총건수) */
+		 , A.REGI_AMT      /*등록금액 */
+		 , A.TRAD_NM       /* 업무명 */
+		 , D.OUT_BANK_CD   /*출금은행코드*/
+		 , DWC_CRYPT.decrypt(D.OUT_ACCT_NO) AS OUT_ACCT_NO  /*출금계좌 */
+		 , FN_ACCT_FORMAT(D.OUT_BANK_CD, DWC_CRYPT.DECRYPT(D.OUT_ACCT_NO)) AS FORMAT_OUT_ACCT_NO    /*출금계좌 */
+		 , D.OUT_ACCT_SEQ
+		 , A.TRAD_GB
+		 , C.USER_ID   AS LAST_SAN_USER_ID /* 최종결재자ID */
+		 , C.USER_NM   AS LAST_SAN_USER_NM /* 최종결재자명 */
+		 , B.ATTACHTAG_SEQ       /*부표순번 */
+		 , B.ELCTRN_PAY_NO       /*전자납부번호*/
+		 , B.PAY_SE              /*납부구분*/
+		 , CD2.CMM_CD_NM AS PAY_SE_NM /*납부구분명*/
+		 , B.TRAN_AMT            /*이체금액 */
+		 , B.GIRO_NO             /*지로번호 */
+		 , M.DEDT_BEFORE_YMD     /*납부기한일 */
+		 , M.LEVY_YM                          /*납부년월  */
+		 , A.LAST_STATUS
+		 , CD3.CMM_CD_NM AS LAST_STATUS_NM
+	FROM AP_IF_MAST$     A
+		 , AP_IF_DETAIL$   B
+		 , DWC_USER_MSTR   C
+		 , (
+			/*출금계좌정보 조회*/
+			SELECT ACCT_SEQ AS OUT_ACCT_SEQ
+				 , BANK_CD AS OUT_BANK_CD
+				 , ACCT_NO AS OUT_ACCT_NO
+			  FROM FN_ACCT
+			 WHERE BANK_CD                  = '10000004'
+			   AND ACCT_USE_TYPE    = '02'
+			   AND USE_YN                   = 'Y'
+			   AND ROWNUM                   = 1
+		   ) D
+		 , DWC_CMM_CODE  CD1
+		 , DWC_CMM_CODE  CD2
+		 , DWC_CMM_CODE  CD3
+		 , DWC_ASSIGN_INFO I
+		 , (SELECT  ELCTRN_PAY_NO
+				 ,  MIN(LEVY_YM)  KEEP  (DENSE_RANK  FIRST  ORDER  BY  PNO  DESC)  AS  LEVY_YM
+				 ,  MIN(DEDT_BEFORE_YMD)  KEEP  (DENSE_RANK  FIRST  ORDER  BY  PNO  DESC)  AS  DEDT_BEFORE_YMD
+			  FROM  MB_GIRO_INFO
+			GROUP  BY  ELCTRN_PAY_NO)  M
+	WHERE 1 = 1
+		AND A.SLR_KND_DSCD     = CD1.CMM_CD(+)
+		AND CD1.GRP_CD(+)      = 'KT001'
+		AND B.PAY_SE           = CD2.CMM_CD(+)
+		AND CD2.GRP_CD(+)      = 'GC0014'
+		AND A.BIZ_PI_ID        = I.PI_ID(+)
+		AND I.FINAL_ASSIGN_UID = C.USER_ID(+)
+		AND B.ELCTRN_PAY_NO    = M.ELCTRN_PAY_NO(+)
+		AND A.LAST_STATUS      = CD3.CMM_CD(+)
+		AND CD3.GRP_CD(+)      = 'S043'
+		AND A.TRAD_GB          = '100'        /*통합공과금*/
+		AND A.LAST_STATUS      IN ('91', '32', '33')   /*처리상태*/
+		AND A.REGI_DATE        = B.REGI_DATE
+		AND A.SVC_DIST         = B.SVC_DIST
+		AND A.REGI_NUM         = B.REGI_NUM
+		AND A.TRAD_GB          = B.TRAD_GB
+		AND B.ELCTRN_PAY_NO IS NOT NULL
+		AND A.TRAN_SET_DATE = '20230816'
+		) TB
+		, (SELECT  ELCTRN_PAY_NO
+			  ,  MIN(NVL(LEVY_YM,  '999912'))  KEEP  (DENSE_RANK  FIRST  ORDER  BY  PNO  DESC)  AS  LEVY_YM
+			  ,  MIN(DEDT_BEFORE_YMD)  KEEP  (DENSE_RANK  FIRST  ORDER  BY  PNO  DESC)  AS  DEDT_BEFORE_YMD
+			  ,  MIN(PROC_STS)  AS  PROC_STS
+			FROM  MB_GIRO_TRAN
+			GROUP  BY  ELCTRN_PAY_NO) B
+WHERE 1 = 1
+	AND TB.ELCTRN_PAY_NO  =  B.ELCTRN_PAY_NO(+)       /*전자납부번호*/
+	AND CASE  WHEN  TB.PAY_SE  IN  ('03',  '04')  THEN  TB.LEVY_YM  ELSE  '999912'  END  =  B.LEVY_YM(+)
+ORDER BY TB.REGI_DATE DESC, TO_NUMBER(TB.REGI_NUM) ASC
+;
+
+
+
+-- 지로납부 > 지로납부 결과조회
+SELECT TB.*
+FROM (
+	SELECT
+		   C.AP_IF_MAST_PNO AS PNO
+		 , A.AP_IF_DETAIL_PNO AS DETAIL_PNO  /* AP_IF_DETAIL_PNO */
+		 , A.REGI_SEQ         /*순번 */
+		 , A.IN_BANK_CD       /*입금은행 코드 */
+		 , DECODE(A.IN_BANK_CD, '10000010', '농협', BK.BANK_NM) as BANK_NM            /*입금은행 이름 */
+		 , A.IN_ACCT_NO      /*입금계좌번호 */
+		 , FN_ACCT_FORMAT(A.IN_BANK_CD, A.IN_ACCT_NO) AS ACCT_NO /*FORMAT 적용 계좌번호 */
+		 , A.TRAN_AMT || '' AS TRAN_AMT  /*이체금액 */
+		 , A.REGI_REF_NM     /*예금주명 */
+		 , A.OUT_ACCT_NO     /*출금계좌번호*/
+		 , DECODE(A.RRNO, null, '', SUBSTR(A.RRNO,0,7)||'******') AS NAME_NO         /*주민등록,사업자번호*/
+		 , NVL(C.ERR_CNT , 0) AS ERR_CNT  /*에러건수    */
+		 , NVL(C.ERR_AMT , 0) AS ERR_AMT  /*에러금액    */
+		 , A.CREDITOR_DIV    /*채주구분 */
+		 , DECODE(A.CREDITOR_DIV, 'A03001','거래처','A03002','사원','A03003','부서','A03001','법인카드') AS CREDITOR_DIV_NM
+		 , A.IN_RMK          /*입금통장에 찍힐 내용 */
+		 , A.ATTACHTAG_SEQ    /*부표순번 */
+		 , A.END_GB           /*처리완료여부        */
+		 , CD1.CD_DESC AS END_GB_NM
+		 , F_ERR_MSG(A.OUT_BANK_CD,A.PROC_STS,'1', A.ORG_CD) AS FORMAT_ERR_MSG
+		 , A.ELCTRN_PAY_NO    /*전자납부번호*/
+		 , A.PAY_SE          /*납부구분*/
+		 , CD2.CMM_CD_NM AS PAY_SE_NM     /*납부구분명*/
+		 , A.GIRO_NO          /*지로번호*/
+		 , M.DEDT_BEFORE_YMD  /*지로납부기한*/
+		 , C.VOTE_NO          /*결의서번호*/
+		 , DECODE(C.KTCU_DEPT_NM, '',
+					(SELECT DEPT_NM FROM DWC_DEPT_MSTR D, DWC_USER_MSTR B WHERE B.USER_ID=C.KTCU_USER_ID
+						AND B.DEPT_CD=D.DEPT_CD),
+				 	C.KTCU_DEPT_NM
+				 ) AS DEPT_NM /*발의부서명*/
+		 , C.KTCU_USER_NM /*발의자명*/
+		 , C.LAST_STATUS
+		 , CD3.CMM_CD_NM AS LAST_STATUS_NM
+		 , (SELECT ERR_MSG FROM COM_ERRCDMST
+			 WHERE 1=1
+			   AND ORG_CD = 'KB_GIRO'
+			   AND ERR_CD = A.PROC_STS) AS ERR_MSG
+	 FROM AP_IF_DETAIL A
+		 , AP_IF_MAST C
+		 , DWC_CMM_CODE CD1
+		 , DWC_CMM_CODE CD2
+		 , DWC_CMM_CODE CD3
+		 , BA_BANK BK
+		 , (SELECT ELCTRN_PAY_NO
+				 , MIN(DEDT_BEFORE_YMD) KEEP (DENSE_RANK FIRST ORDER BY PNO DESC) AS DEDT_BEFORE_YMD
+			  FROM MB_GIRO_INFO
+			 GROUP BY ELCTRN_PAY_NO) M
+	 WHERE A.REGI_DATE     = C.REGI_DATE
+		AND A.REGI_NUM      = C.REGI_NUM
+		AND A.TRAD_GB       = C.TRAD_GB
+		AND A.SVC_DIST      = C.SVC_DIST
+		AND A.ELCTRN_PAY_NO = M.ELCTRN_PAY_NO(+)
+		AND A.END_GB        = CD1.CMM_CD(+)
+		AND CD1.GRP_CD(+)   = 'S049'
+		AND A.PAY_SE        = CD2.CMM_CD(+)
+		AND CD2.GRP_CD(+)   = 'GC0014'
+		AND C.LAST_STATUS   = CD3.CMM_CD(+)
+		AND CD3.GRP_CD(+)   = 'S043'
+		AND A.IN_BANK_CD    = BK.BANK_CD(+)
+		AND C.LAST_STATUS  IN ('20','30','31','51', '52')
+		AND C.TRAD_GB       = '100'          /*통합공과금*/
+		AND A.ELCTRN_PAY_NO IS NOT NULL
+		AND C.TRAN_SET_DATE BETWEEN '20230801' and '20230816'
+	 ORDER BY A.REGI_DATE DESC, TO_NUMBER(A.REGI_NUM) ASC, TO_NUMBER(A.REGI_SEQ) ASC
+	) TB
+WHERE 1 = 1
+;
+
+
+
+-- 직원급여지급 > 직원급여 지급승인
+SELECT
+	TB2.PNO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.SLR_KND_DSCD     END AS SLR_KND_DSCD
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.SLR_KND_DSCD_TXT END AS SLR_KND_DSCD_TXT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REGI_DATE        END AS REGI_DATE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.SVC_DIST         END AS SVC_DIST
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.REGI_NUM     END AS REGI_NUM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.VOTE_NO          END AS VOTE_NO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAD_GB          END AS TRAD_GB
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ERP_CD           END AS ERP_CD
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.DEPT_NM          END AS DEPT_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.KTCU_USER_ID     END AS KTCU_USER_ID
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.USER_NM          END AS USER_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.KTCU_REG_DT      END AS KTCU_REG_DT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAN_SET_DATE    END AS TRAN_SET_DATE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.BRIEF_TITLE      END AS BRIEF_TITLE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.REGI_CNT     END AS REGI_CNT
+	, TB2.REGI_AMT || '' AS REGI_AMT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAD_NM          END AS TRAD_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.out_bank_cd      END AS out_bank_cd
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.out_acct_no      END AS out_acct_no
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.BIZ_PI_ID    END AS BIZ_PI_ID
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REG_USER_NM      END AS REG_USER_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.LAST_STATUS      END AS LAST_STATUS
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.LAST_STATUS_NM   END AS LAST_STATUS_NM
+	, TB2.GINFO
+FROM(
+	SELECT
+		PNO
+		, MAX(SLR_KND_DSCD    ) AS SLR_KND_DSCD
+		, MAX(SLR_KND_DSCD_TXT) AS SLR_KND_DSCD_TXT
+		, MAX(REGI_DATE       ) AS REGI_DATE
+		, MAX(SVC_DIST        ) AS SVC_DIST
+		, MAX(REGI_NUM        ) AS REGI_NUM
+		, MAX(VOTE_NO         ) AS VOTE_NO
+		, MAX(TRAD_GB         ) AS TRAD_GB
+		, MAX(ERP_CD          ) AS ERP_CD
+		, MAX(DEPT_NM         ) AS DEPT_NM
+		, MAX(KTCU_USER_ID    ) AS KTCU_USER_ID
+		, MAX(USER_NM         ) AS USER_NM
+		, MAX(KTCU_REG_DT     ) AS KTCU_REG_DT
+		, MAX(TRAN_SET_DATE   ) AS TRAN_SET_DATE
+		, MAX(BRIEF_TITLE     ) AS BRIEF_TITLE
+		, MAX(REGI_CNT        ) AS REGI_CNT
+		, SUM(REGI_AMT        ) AS REGI_AMT
+		, MAX(TRAD_NM         ) AS TRAD_NM
+		, MAX(out_bank_cd     ) AS out_bank_cd
+		, MAX(out_acct_no     ) AS out_acct_no
+		, MAX(BIZ_PI_ID       ) AS BIZ_PI_ID
+		, MAX(REG_USER_NM     ) AS REG_USER_NM
+		, MAX(LAST_STATUS     ) AS LAST_STATUS
+		, MAX(LAST_STATUS_NM  ) AS LAST_STATUS_NM
+		, GROUPING(TB.PNO) AS GINFO
+	FROM (
+		SELECT
+			   A.AP_IF_MAST_PNO AS PNO
+			 , A.SLR_KND_DSCD                               /* 급여종류코드(지급구분) */
+			 , CD1.CMM_CD_NM AS SLR_KND_DSCD_TXT
+			 , A.REGI_DATE                                  /*등록일자(KEY)*/
+			 , A.SVC_DIST                                   /*시스템구분(KEY)*/
+			 , A.REGI_NUM                                   /*등록일련번호(KEY) */
+			 , A.VOTE_NO                                    /*결의서번호*/
+			 , A.TRAD_GB                                    /*업무구분코드*/
+			 , A.ERP_CD                                     /*발의부서*/
+			 , DECODE(A.KTCU_DEPT_NM,
+					  '',
+					 (SELECT DEPT_NM
+						FROM DWC_DEPT_MSTR A, DWC_USER_MSTR B
+					   WHERE B.USER_ID=A.KTCU_USER_ID
+						 AND B.DEPT_CD=A.DEPT_CD ),
+					  A.KTCU_DEPT_NM) AS DEPT_NM            /*발의부서명*/
+			 , A.KTCU_USER_ID                               /*발의부서 처리자 ID(발의자)*/
+			 , A.KTCU_USER_NM AS USER_NM                    /*발의부서 처리자명(발의자명)*/
+			 , A.KTCU_REG_DT                                /*발의부서 결재일시(전송일자) */
+			 , A.TRAN_SET_DATE                              /*지급일자*/
+			 , A.BRIEF_TITLE                                /*적요*/
+			 , A.REGI_CNT                                   /*등록건수(총건수) */
+			 , A.REGI_AMT                                   /*등록금액 */
+			 , A.TRAD_NM                                    /* 업무명 */
+			 , A.out_bank_cd                                /*출금은행코드*/
+			 , A.out_acct_no                                /*출금계좌 */
+			 , A.BIZ_PI_ID
+			 , B.REG_UID as  REG_USER_NM
+			 , A.LAST_STATUS
+			 , CD2.CMM_CD_NM    AS LAST_STATUS_NM
+		FROM AP_IF_MAST      A
+			, DWC_ASSIGN_INFO B
+			, DWC_CMM_CODE    CD1
+			, DWC_CMM_CODE    CD2
+		WHERE 1 = 1
+			AND A.BIZ_PI_ID     = B.PI_ID(+)
+			AND A.SLR_KND_DSCD  = CD1.CMM_CD(+)
+			AND CD1.GRP_CD(+)   = 'KT001'
+			AND A.LAST_STATUS   = CD2.CMM_CD(+)
+			AND CD2.GRP_CD(+)   = 'S043'
+			AND A.REGI_DATE     = '20230718'  /*전송일자 */
+			AND A.TRAD_GB      = '201'   /*이체종류*/
+			AND A.LAST_STATUS   IN ('91', '33') /*처리상태*/
+			AND EXISTS ( SELECT '1'
+						  FROM AP_IF_DETAIL D
+						 WHERE A.REGI_DATE = D.REGI_DATE
+						   AND A.SVC_DIST  = D.SVC_DIST
+						   AND A.REGI_NUM  = D.REGI_NUM
+						   AND A.TRAD_GB   = D.TRAD_GB
+					   )
+		) TB
+		GROUP BY ROLLUP(PNO)
+	) TB2
+	ORDER BY TB2.GINFO, TB2.TRAN_SET_DATE DESC
+;
+
+
+
+-- 직원급여지급 > 직원급여 지급실행
+SELECT
+	TB2.PNO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.SLR_KND_DSCD     END AS SLR_KND_DSCD
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.SLR_KND_DSCD_TXT END AS SLR_KND_DSCD_TXT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REGI_DATE        END AS REGI_DATE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.SVC_DIST         END AS SVC_DIST
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.REGI_NUM     END AS REGI_NUM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.VOTE_NO          END AS VOTE_NO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAD_GB          END AS TRAD_GB
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ERP_CD           END AS ERP_CD
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.DEPT_NM          END AS DEPT_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.KTCU_USER_ID     END AS KTCU_USER_ID
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.USER_NM          END AS USER_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.KTCU_REG_DT      END AS KTCU_REG_DT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAN_SET_DATE    END AS TRAN_SET_DATE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.BRIEF_TITLE      END AS BRIEF_TITLE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.REGI_CNT     END AS REGI_CNT
+	, TB2.REGI_AMT || '' AS REGI_AMT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAD_NM          END AS TRAD_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.out_bank_cd      END AS out_bank_cd
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.out_acct_no      END AS out_acct_no
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.BIZ_PI_ID    END AS BIZ_PI_ID
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REG_USER_NM      END AS REG_USER_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.LAST_STATUS      END AS LAST_STATUS
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.LAST_STATUS_NM   END AS LAST_STATUS_NM
+	, TB2.GINFO
+FROM(
+	SELECT
+		PNO
+		, MAX(SLR_KND_DSCD    ) AS SLR_KND_DSCD
+		, MAX(SLR_KND_DSCD_TXT) AS SLR_KND_DSCD_TXT
+		, MAX(REGI_DATE       ) AS REGI_DATE
+		, MAX(SVC_DIST        ) AS SVC_DIST
+		, MAX(REGI_NUM        ) AS REGI_NUM
+		, MAX(VOTE_NO         ) AS VOTE_NO
+		, MAX(TRAD_GB         ) AS TRAD_GB
+		, MAX(ERP_CD          ) AS ERP_CD
+		, MAX(DEPT_NM         ) AS DEPT_NM
+		, MAX(KTCU_USER_ID    ) AS KTCU_USER_ID
+		, MAX(USER_NM         ) AS USER_NM
+		, MAX(KTCU_REG_DT     ) AS KTCU_REG_DT
+		, MAX(TRAN_SET_DATE   ) AS TRAN_SET_DATE
+		, MAX(BRIEF_TITLE     ) AS BRIEF_TITLE
+		, MAX(REGI_CNT        ) AS REGI_CNT
+		, SUM(REGI_AMT        ) AS REGI_AMT
+		, MAX(TRAD_NM         ) AS TRAD_NM
+		, MAX(out_bank_cd     ) AS out_bank_cd
+		, MAX(out_acct_no     ) AS out_acct_no
+		, MAX(BIZ_PI_ID       ) AS BIZ_PI_ID
+		, MAX(REG_USER_NM     ) AS REG_USER_NM
+		, MAX(LAST_STATUS     ) AS LAST_STATUS
+		, MAX(LAST_STATUS_NM  ) AS LAST_STATUS_NM
+		, GROUPING(TB.PNO) AS GINFO
+	FROM (
+		SELECT
+			   A.AP_IF_MAST_PNO AS PNO
+			 , A.SLR_KND_DSCD  /* 급여종류코드(지급구분) */
+			 , CD1.CMM_CD_NM AS SLR_KND_DSCD_TXT
+			 , A.REGI_DATE     /*등록일자(KEY)*/
+			 , A.SVC_DIST      /*시스템구분(KEY)*/
+			 , A.REGI_NUM      /*등록일련번호(KEY) */
+			 , A.VOTE_NO       /*결의서번호*/
+			 , A.TRAD_GB       /*업무구분코드*/
+			 , A.ERP_CD        /*발의부서*/
+			 , DECODE(A.KTCU_DEPT_NM,
+					  '',
+					 (SELECT DEPT_NM
+						FROM DWC_DEPT_MSTR A, DWC_USER_MSTR B
+					   WHERE B.USER_ID=A.KTCU_USER_ID
+						 AND B.DEPT_CD=A.DEPT_CD ),
+					  A.KTCU_DEPT_NM) AS DEPT_NM /*발의부서명*/
+			 , A.KTCU_USER_ID  /*발의부서 처리자 ID(발의자)*/
+			 , A.KTCU_USER_NM AS USER_NM       /*발의부서 처리자명(발의자명)*/
+			 , A.KTCU_REG_DT   /*발의부서 결재일시(전송일자) */
+			 , A.TRAN_SET_DATE /*지급일자*/
+			 , A.BRIEF_TITLE   /*적요*/
+			 , A.REGI_CNT      /*등록건수(총건수) */
+			 , A.REGI_AMT      /*등록금액 */
+			 , A.TRAD_NM       /* 업무명 */
+			 , A.out_bank_cd   /*출금은행코드*/
+			 , A.out_acct_no    /*출금계좌 */
+			 , A.BIZ_PI_ID
+			 , B.REG_UID as  REG_USER_NM
+			 , A.LAST_STATUS
+			 /*, CASE WHEN A.LAST_STATUS='21' THEN '결재반송' ELSE CD2.CMM_CD_NM END AS LAST_STATUS_NM*/
+			 , CD2.CMM_CD_NM AS LAST_STATUS_NM
+		FROM AP_IF_MAST      A
+			 , DWC_ASSIGN_INFO B
+			 , DWC_CMM_CODE    CD1
+			 , DWC_CMM_CODE    CD2
+		WHERE 1 = 1
+			AND A.BIZ_PI_ID     = B.PI_ID(+)
+			AND A.SLR_KND_DSCD  = CD1.CMM_CD(+)
+			AND CD1.GRP_CD(+)   = 'KT001'
+			AND A.LAST_STATUS = CD2.CMM_CD(+)
+			AND CD2.GRP_CD(+)   = 'S043'
+			AND A.REGI_DATE     = '20230613'  /*전송일자 */
+			AND A.TRAD_GB      = '201'   /*이체종류*/
+			/*AND A.LAST_STATUS  IN ('21', '91', '32', '33')*/         /*처리상태*/
+			AND A.LAST_STATUS  IN ('21', '32')         /*처리상태*/
+			AND EXISTS ( SELECT '1'
+						  FROM AP_IF_DETAIL D
+						 WHERE A.REGI_DATE = D.REGI_DATE
+						   AND A.SVC_DIST  = D.SVC_DIST
+						   AND A.REGI_NUM  = D.REGI_NUM
+						   AND A.TRAD_GB   = D.TRAD_GB
+					   )
+		) TB
+		GROUP BY ROLLUP(PNO)
+	) TB2
+	ORDER BY TB2.GINFO, TB2.TRAN_SET_DATE DESC
+;
+
+
+
+-- 직원급여지급 > 직원급여 결과조회
+SELECT
+	TB2.PNO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REG_DATE_TIME END AS REG_DATE_TIME
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REGI_DATE     END AS REGI_DATE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.SVC_DIST      END AS SVC_DIST
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REGI_NUM||''  END AS REGI_NUM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAD_GB       END AS TRAD_GB
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.GUBUN         END AS GUBUN
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.DEPT_NM       END AS DEPT_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.USER_NM       END AS USER_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REGI_TIME     END AS REGI_TIME
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.END_DATETIME  END AS END_DATETIME
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAN_SET_YN   END AS TRAN_SET_YN
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAN_SET_DATE END AS TRAN_SET_DATE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAN_SET_TIME END AS TRAN_SET_TIME
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.BRIEF_TITLE   END AS BRIEF_TITLE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ERP_CD        END AS ERP_CD
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.VOTE_NO       END AS VOTE_NO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.KTCU_USER_ID  END AS KTCU_USER_ID
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAD_NM       END AS TRAD_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.OUT_ACCT_NO   END AS OUT_ACCT_NO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.LAST_STATUS   END AS LAST_STATUS
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.END_GB        END AS END_GB
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.END_GB_NM     END AS END_GB_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.END_GB_NM_SH  END AS END_GB_NM_SH
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.REGI_CNT  END AS REGI_CNT
+	, TB2.REGI_AMT || '' AS REGI_AMT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.NOR_CNT   END AS NOR_CNT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.NOR_AMT   END AS NOR_AMT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.BUL_CNT   END AS BUL_CNT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.BUL_AMT   END AS BUL_AMT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.ERR_CNT   END AS ERR_CNT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.ERR_AMT   END AS ERR_AMT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ACCT_SEQ      END AS ACCT_SEQ
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ACCT_NICK_NM  END AS ACCT_NICK_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.BANK_NM       END AS BANK_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REGI_CANCEL_YN END AS REGI_CANCEL_YN
+	, TB2.GINFO
+FROM(
+	SELECT
+		PNO
+		, MAX(REG_DATE_TIME) AS REG_DATE_TIME
+		, MAX(REGI_DATE    ) AS REGI_DATE
+		, MAX(SVC_DIST     ) AS SVC_DIST
+		, MAX(REGI_NUM     ) AS REGI_NUM
+		, MAX(TRAD_GB      ) AS TRAD_GB
+		, MAX(GUBUN        ) AS GUBUN
+		, MAX(DEPT_NM      ) AS DEPT_NM
+		, MAX(USER_NM      ) AS USER_NM
+		, MAX(REGI_TIME    ) AS REGI_TIME
+		, MAX(END_DATETIME ) AS END_DATETIME
+		, MAX(TRAN_SET_YN  ) AS TRAN_SET_YN
+		, MAX(TRAN_SET_DATE) AS TRAN_SET_DATE
+		, MAX(TRAN_SET_TIME) AS TRAN_SET_TIME
+		, MAX(BRIEF_TITLE  ) AS BRIEF_TITLE
+		, MAX(ERP_CD       ) AS ERP_CD
+		, MAX(VOTE_NO      ) AS VOTE_NO
+		, MAX(KTCU_USER_ID ) AS KTCU_USER_ID
+		, MAX(TRAD_NM      ) AS TRAD_NM
+		, MAX(OUT_ACCT_NO  ) AS OUT_ACCT_NO
+		, MAX(LAST_STATUS  ) AS LAST_STATUS
+		, MAX(END_GB       ) AS END_GB
+		, MAX(END_GB_NM    ) AS END_GB_NM
+		, MAX(END_GB_NM_SH ) AS END_GB_NM_SH
+		, MAX(REGI_CNT     ) AS REGI_CNT
+		, SUM(REGI_AMT     ) AS REGI_AMT
+		, MAX(NOR_CNT      ) AS NOR_CNT
+		, MAX(NOR_AMT      ) AS NOR_AMT
+		, MAX(BUL_CNT      ) AS BUL_CNT
+		, MAX(BUL_AMT      ) AS BUL_AMT
+		, MAX(ERR_CNT      ) AS ERR_CNT
+		, MAX(ERR_AMT      ) AS ERR_AMT
+		, MAX(ACCT_SEQ     ) AS ACCT_SEQ
+		, MAX(ACCT_NICK_NM ) AS ACCT_NICK_NM
+		, MAX(BANK_NM      ) AS BANK_NM
+		, MAX(REGI_CANCEL_YN) AS REGI_CANCEL_YN
+		, GROUPING(TB.PNO) AS GINFO
+	FROM (
+		SELECT
+			A.AP_IF_MAST_PNO AS PNO
+			, A.REGI_DATE||A.REGI_TIME AS REG_DATE_TIME
+			, A.REGI_DATE         /*등록일자               */
+			, A.SVC_DIST          /*시스템구분             */
+			, A.REGI_NUM          /*등록일련번호           */
+			, A.TRAD_GB           /*업무구분코드(이체종류) */
+			, DECODE(A.TRAD_GB,'201','급여지급(익일)','202','오류분지급(익일)','299','급여지급(당일)') AS GUBUN       /*지급구분TXT */
+			, A.ktcu_dept_nm AS DEPT_NM
+			, A.ktcu_USER_nm AS USER_NM
+			, A.REGI_TIME         /*등록시간               */
+			, A.END_DATETIME      /*처리완료일시           */
+			, A.TRAN_SET_YN       /*예약이체여부           */
+			, A.TRAN_SET_DATE     /*예약일자               */
+			, A.TRAN_SET_TIME     /*예약시간               */
+			, A.BRIEF_TITLE       /*적요                   */
+			, A.ERP_CD            /*발의부서               */
+			, A.VOTE_NO           /*결의서번호             */
+			, A.KTCU_USER_ID      /*발의부서 처리자 ID(발의자)*/
+			, A.TRAD_NM           /*파일명                 */
+			, FN_ACCT_FORMAT(A.OUT_BANK_CD, A.OUT_ACCT_NO)  as OUT_ACCT_NO       /*출금계좌               */
+			, A.LAST_STATUS       /*최종처리상태           */
+			, A.END_GB            /*작업완료여부           */
+			, CASE WHEN A.LAST_STATUS IN ('10', '11', '15') THEN '결재중'
+				WHEN A.LAST_STATUS IN ('20', '21') THEN '결재완료'
+				WHEN A.LAST_STATUS = '51' AND A.FILE_SEND_STS IN('0', '3') THEN 'EDI파일생성'
+				WHEN A.LAST_STATUS = '51' AND A.FILE_SEND_STS = '1' THEN '은행수신완료'
+				WHEN A.LAST_STATUS = '52' THEN '처리완료'
+				WHEN A.LAST_STATUS = '55' THEN '등록취소'
+				ELSE '미처리'
+			  END END_GB_NM   /* 파일전송상태 */
+			, CASE WHEN A.LAST_STATUS IN ('10', '11', '15') THEN '1'
+				WHEN A.LAST_STATUS IN ('20', '21') THEN '2'
+				WHEN A.LAST_STATUS = '51' AND A.FILE_SEND_STS IN('0', '3') THEN '3'
+				WHEN A.LAST_STATUS = '51' AND A.FILE_SEND_STS = '1' THEN '4'
+				WHEN A.LAST_STATUS = '52' THEN '5'
+				WHEN A.LAST_STATUS = '55' THEN '6'
+				ELSE '0'
+			  END END_GB_NM_SH   /* 검색용 파일전송상태 */
+			, NVL(A.REGI_CNT, 0) AS REGI_CNT /*등록건수    */
+			, NVL(A.REGI_AMT, 0) AS REGI_AMT /*등록금액    */
+			, NVL(A.NOR_CNT , 0) AS NOR_CNT  /*정상건수    */
+			, NVL(A.NOR_AMT , 0) AS NOR_AMT  /*정상금액    */
+			, NVL(A.BUL_CNT , 0) AS BUL_CNT  /*불능건수    */
+			, NVL(A.BUL_AMT , 0) AS BUL_AMT  /*불능금액    */
+			, NVL(A.ERR_CNT , 0) AS ERR_CNT  /*에러건수    */
+			, NVL(A.ERR_AMT , 0) AS ERR_AMT  /*에러금액    */
+			, B.ACCT_SEQ          /*계좌일련번호           */
+			, C.ACCT_NICK_NM      /*계좌별칭               */
+			, BK.BANK_NM          /* 은행명 */
+			, CASE WHEN A.FILE_SEND_STS IS NULL AND A.LAST_STATUS IN ('15', '20') THEN 'Y' ELSE 'N' END AS REGI_CANCEL_YN
+		FROM AP_IF_MAST      A
+			, DWC_ASSIGN_INFO B
+			, FN_ACCT         C
+			, BA_BANK         BK
+		WHERE 1 = 1
+		  AND A.EXP_PI_ID      = B.PI_ID(+)
+		  AND C.BANK_CD        = BK.BANK_CD(+)
+		  AND B.FINAL_APPR_YN(+) = 'Y'
+		  AND C.ACCT_SEQ(+)    = B.ACCT_SEQ
+		  AND A.LAST_STATUS IN ('20','30','31','51','52')
+		  AND A.TRAN_SET_DATE BETWEEN '20231101' and '20231231'
+		  AND A.TRAD_GB IN ('201', '202', '299')
+		) TB
+		GROUP BY ROLLUP(PNO)
+	) TB2
+	ORDER BY TB2.GINFO, TB2.TRAN_SET_DATE DESC, TB2.END_DATETIME DESC, TB2.TRAD_NM
+;
+
+
+
+-- 직원급여지급 > 직원급여 결과조회 > 상세조회
+SELECT
+	TB2.PNO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REG_DATE_TIME END AS REG_DATE_TIME
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REGI_DATE     END AS REGI_DATE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.SVC_DIST      END AS SVC_DIST
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REGI_NUM||''  END AS REGI_NUM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAD_GB       END AS TRAD_GB
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.GUBUN         END AS GUBUN
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.DEPT_NM       END AS DEPT_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.USER_NM       END AS USER_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REGI_TIME     END AS REGI_TIME
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.END_DATETIME  END AS END_DATETIME
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAN_SET_YN   END AS TRAN_SET_YN
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAN_SET_DATE END AS TRAN_SET_DATE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAN_SET_TIME END AS TRAN_SET_TIME
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.BRIEF_TITLE   END AS BRIEF_TITLE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ERP_CD        END AS ERP_CD
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.VOTE_NO       END AS VOTE_NO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.KTCU_USER_ID  END AS KTCU_USER_ID
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAD_NM       END AS TRAD_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.OUT_ACCT_NO   END AS OUT_ACCT_NO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.LAST_STATUS   END AS LAST_STATUS
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.END_GB        END AS END_GB
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.END_GB_NM     END AS END_GB_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.END_GB_NM_SH  END AS END_GB_NM_SH
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.REGI_CNT  END AS REGI_CNT
+	, TB2.REGI_AMT || '' AS REGI_AMT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.NOR_CNT   END AS NOR_CNT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.NOR_AMT   END AS NOR_AMT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.BUL_CNT   END AS BUL_CNT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.BUL_AMT   END AS BUL_AMT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.ERR_CNT   END AS ERR_CNT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE ''||TB2.ERR_AMT   END AS ERR_AMT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ACCT_SEQ      END AS ACCT_SEQ
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ACCT_NICK_NM  END AS ACCT_NICK_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.BANK_NM       END AS BANK_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REGI_CANCEL_YN END AS REGI_CANCEL_YN
+	, TB2.GINFO
+FROM(
+	SELECT
+		PNO
+		, MAX(REG_DATE_TIME) AS REG_DATE_TIME
+		, MAX(REGI_DATE    ) AS REGI_DATE
+		, MAX(SVC_DIST     ) AS SVC_DIST
+		, MAX(REGI_NUM     ) AS REGI_NUM
+		, MAX(TRAD_GB      ) AS TRAD_GB
+		, MAX(GUBUN        ) AS GUBUN
+		, MAX(DEPT_NM      ) AS DEPT_NM
+		, MAX(USER_NM      ) AS USER_NM
+		, MAX(REGI_TIME    ) AS REGI_TIME
+		, MAX(END_DATETIME ) AS END_DATETIME
+		, MAX(TRAN_SET_YN  ) AS TRAN_SET_YN
+		, MAX(TRAN_SET_DATE) AS TRAN_SET_DATE
+		, MAX(TRAN_SET_TIME) AS TRAN_SET_TIME
+		, MAX(BRIEF_TITLE  ) AS BRIEF_TITLE
+		, MAX(ERP_CD       ) AS ERP_CD
+		, MAX(VOTE_NO      ) AS VOTE_NO
+		, MAX(KTCU_USER_ID ) AS KTCU_USER_ID
+		, MAX(TRAD_NM      ) AS TRAD_NM
+		, MAX(OUT_ACCT_NO  ) AS OUT_ACCT_NO
+		, MAX(LAST_STATUS  ) AS LAST_STATUS
+		, MAX(END_GB       ) AS END_GB
+		, MAX(END_GB_NM    ) AS END_GB_NM
+		, MAX(END_GB_NM_SH ) AS END_GB_NM_SH
+		, MAX(REGI_CNT     ) AS REGI_CNT
+		, SUM(REGI_AMT     ) AS REGI_AMT
+		, MAX(NOR_CNT      ) AS NOR_CNT
+		, MAX(NOR_AMT      ) AS NOR_AMT
+		, MAX(BUL_CNT      ) AS BUL_CNT
+		, MAX(BUL_AMT      ) AS BUL_AMT
+		, MAX(ERR_CNT      ) AS ERR_CNT
+		, MAX(ERR_AMT      ) AS ERR_AMT
+		, MAX(ACCT_SEQ     ) AS ACCT_SEQ
+		, MAX(ACCT_NICK_NM ) AS ACCT_NICK_NM
+		, MAX(BANK_NM      ) AS BANK_NM
+		, MAX(REGI_CANCEL_YN) AS REGI_CANCEL_YN
+		, GROUPING(TB.PNO) AS GINFO
+	FROM (
+		SELECT
+			A.AP_IF_MAST_PNO AS PNO
+			, A.REGI_DATE||A.REGI_TIME AS REG_DATE_TIME
+			, A.REGI_DATE         /*등록일자               */
+			, A.SVC_DIST          /*시스템구분             */
+			, A.REGI_NUM          /*등록일련번호           */
+			, A.TRAD_GB           /*업무구분코드(이체종류) */
+			, DECODE(A.TRAD_GB,'201','급여지급(익일)','202','오류분지급(익일)','299','급여지급(당일)') AS GUBUN       /*지급구분TXT */
+			, A.ktcu_dept_nm AS DEPT_NM
+			, A.ktcu_USER_nm AS USER_NM
+			, A.REGI_TIME         /*등록시간               */
+			, A.END_DATETIME      /*처리완료일시           */
+			, A.TRAN_SET_YN       /*예약이체여부           */
+			, A.TRAN_SET_DATE     /*예약일자               */
+			, A.TRAN_SET_TIME     /*예약시간               */
+			, A.BRIEF_TITLE       /*적요                   */
+			, A.ERP_CD            /*발의부서               */
+			, A.VOTE_NO           /*결의서번호             */
+			, A.KTCU_USER_ID      /*발의부서 처리자 ID(발의자)*/
+			, A.TRAD_NM           /*파일명                 */
+			, FN_ACCT_FORMAT(A.OUT_BANK_CD, A.OUT_ACCT_NO)  as OUT_ACCT_NO       /*출금계좌               */
+			, A.LAST_STATUS       /*최종처리상태           */
+			, A.END_GB            /*작업완료여부           */
+			, CASE WHEN A.LAST_STATUS IN ('10', '11', '15') THEN '결재중'
+				WHEN A.LAST_STATUS IN ('20', '21') THEN '결재완료'
+				WHEN A.LAST_STATUS = '51' AND A.FILE_SEND_STS IN('0', '3') THEN 'EDI파일생성'
+				WHEN A.LAST_STATUS = '51' AND A.FILE_SEND_STS = '1' THEN '은행수신완료'
+				WHEN A.LAST_STATUS = '52' THEN '처리완료'
+				WHEN A.LAST_STATUS = '55' THEN '등록취소'
+				ELSE '미처리'
+			  END END_GB_NM   /* 파일전송상태 */
+			, CASE WHEN A.LAST_STATUS IN ('10', '11', '15') THEN '1'
+				WHEN A.LAST_STATUS IN ('20', '21') THEN '2'
+				WHEN A.LAST_STATUS = '51' AND A.FILE_SEND_STS IN('0', '3') THEN '3'
+				WHEN A.LAST_STATUS = '51' AND A.FILE_SEND_STS = '1' THEN '4'
+				WHEN A.LAST_STATUS = '52' THEN '5'
+				WHEN A.LAST_STATUS = '55' THEN '6'
+				ELSE '0'
+			  END END_GB_NM_SH   /* 검색용 파일전송상태 */
+			, NVL(A.REGI_CNT, 0) AS REGI_CNT /*등록건수    */
+			, NVL(A.REGI_AMT, 0) AS REGI_AMT /*등록금액    */
+			, NVL(A.NOR_CNT , 0) AS NOR_CNT  /*정상건수    */
+			, NVL(A.NOR_AMT , 0) AS NOR_AMT  /*정상금액    */
+			, NVL(A.BUL_CNT , 0) AS BUL_CNT  /*불능건수    */
+			, NVL(A.BUL_AMT , 0) AS BUL_AMT  /*불능금액    */
+			, NVL(A.ERR_CNT , 0) AS ERR_CNT  /*에러건수    */
+			, NVL(A.ERR_AMT , 0) AS ERR_AMT  /*에러금액    */
+			, B.ACCT_SEQ          /*계좌일련번호           */
+			, C.ACCT_NICK_NM      /*계좌별칭               */
+			, BK.BANK_NM          /* 은행명 */
+			, CASE WHEN A.FILE_SEND_STS IS NULL AND A.LAST_STATUS IN ('15', '20') THEN 'Y' ELSE 'N' END AS REGI_CANCEL_YN
+		FROM AP_IF_MAST      A
+			, DWC_ASSIGN_INFO B
+			, FN_ACCT         C
+			, BA_BANK         BK
+		WHERE 1 = 1
+			AND A.EXP_PI_ID      = B.PI_ID(+)
+			AND C.BANK_CD        = BK.BANK_CD(+)
+			AND B.FINAL_APPR_YN(+) = 'Y'
+			AND C.ACCT_SEQ(+)    = B.ACCT_SEQ
+			AND A.LAST_STATUS IN ('20','30','31','51','52')
+			AND A.TRAN_SET_DATE BETWEEN '20231101' and '20231231'
+			AND A.TRAD_GB IN ('201', '202', '299')
+		) TB
+		GROUP BY ROLLUP(PNO)
+	) TB2
+	ORDER BY TB2.GINFO, TB2.TRAN_SET_DATE DESC, TB2.END_DATETIME DESC, TB2.TRAD_NM
+;
+
+
+
+-- 직불결과조회 > 직불결과조회
+SELECT
+	TB2.PNO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAD_DATE        END AS TRAD_DATE
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.TRAD_TIME        END AS TRAD_TIME
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.COM_SEQ_NO       END AS COM_SEQ_NO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.SEQ_NO           END AS SEQ_NO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.SVC_DIST_NM      END AS SVC_DIST_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.IN_BANK_CD       END AS IN_BANK_CD
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.BANK_NM          END AS BANK_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.IN_ACCT_NO       END AS IN_ACCT_NO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REAL_IN_ACCT_NO  END AS REAL_IN_ACCT_NO
+	, TB2.TR_AMT || '' AS TR_AMT
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.REMI_NM          END AS REMI_NM
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.CUST_NO          END AS CUST_NO
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.FILLER           END AS FILLER
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.RESP_CD          END AS RESP_CD
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.ERR_MSG          END AS ERR_MSG
+	, CASE WHEN TB2.GINFO = 1 THEN '' ELSE TB2.SVC_DIST         END AS SVC_DIST
+	, TB2.GINFO
+FROM(
+	SELECT
+		PNO
+		, MAX(TRAD_DATE  ) AS TRAD_DATE
+		, MAX(TRAD_TIME  ) AS TRAD_TIME
+		, MAX(COM_SEQ_NO ) AS COM_SEQ_NO
+		, MAX(SEQ_NO     ) AS SEQ_NO
+		, MAX(SVC_DIST_NM) AS SVC_DIST_NM
+		, MAX(IN_BANK_CD ) AS IN_BANK_CD
+		, MAX(BANK_NM    ) AS BANK_NM
+		, MAX(IN_ACCT_NO ) AS IN_ACCT_NO
+		, MAX(REAL_IN_ACCT_NO) AS REAL_IN_ACCT_NO
+		, SUM(TR_AMT     ) AS TR_AMT
+		, MAX(REMI_NM    ) AS REMI_NM
+		, MAX(CUST_NO    ) AS CUST_NO
+		, MAX(FILLER     ) AS FILLER
+		, MAX(RESP_CD    ) AS RESP_CD
+		, MAX(ERR_MSG    ) AS ERR_MSG
+		, MAX(SVC_DIST   ) AS SVC_DIST
+		, GROUPING(TB.PNO) AS GINFO
+	FROM (
+		SELECT
+			   B.AP_TRADE_DPTXINFM_PNO PNO
+			 , B.TRAD_DATE
+			 , B.TRAD_TIME
+			 , TO_CHAR(B.COM_SEQ_NO) AS COM_SEQ_NO
+			 , B.SEQ_NO
+			 , DECODE(B.SVC_DIST,'MIS','회계','MMB','회원','INS','보험','BIZ','법인') AS SVC_DIST_NM
+			 , B.IN_BANK_CD
+			 , C.BANK_NM
+			 , FN_ACCT_FORMAT(B.IN_BANK_CD,DWC_CRYPT.decrypt(B.IN_ACCT_NO)) AS IN_ACCT_NO
+			 , DWC_CRYPT.DECRYPT(B.IN_ACCT_NO) AS REAL_IN_ACCT_NO
+			 , B.TR_AMT
+			 , B.REMI_NM
+			 , DECODE(CUST_NO, null, '', SUBSTR(DWC_CRYPT.decrypt(B.CUST_NO),0,7)||'******') AS CUST_NO
+			 , B.FILLER
+			 , DECODE(LENGTH(B.RESP_CD),8,SUBSTR(B.RESP_CD,5,8),4,B.RESP_CD) AS RESP_CD
+			 , F_ERR_MSG('10000'||B.OUT_BANK_CD, DECODE(LENGTH(B.RESP_CD),8,SUBSTR(B.RESP_CD,5,8),4,B.RESP_CD), '2', B.ORG_CD) AS ERR_MSG
+			 , B.SVC_DIST
+		FROM AP_TRADE_DPTXINFM$ B
+			 , FN_ACCT$ A
+			 , BA_BANK C
+			 , BA_USER_GRP_ACCT_A001_V V
+		WHERE B.TRAD_DATE BETWEEN '20230801' and '20230807'
+			AND B.OUT_ACCT_NO = A.ACCT_NO
+			AND V.USER_ID     = 'SYSTEMADMIN'
+			AND NVL(A.ACCT_SEQ, 'NOT') = V.ACCT_SEQ
+			AND '10000'||B.IN_BANK_CD = C.BANK_CD(+)
+			AND B.SVC_DIST  IN ('MIS', 'INS', 'MMB', 'BIZ')
+		) TB
+		GROUP BY ROLLUP(PNO)
+	) TB2
+	ORDER BY TB2.GINFO, TB2.TRAD_DATE DESC, TB2.TRAD_TIME DESC
+;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
