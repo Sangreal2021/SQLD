@@ -47,7 +47,7 @@
 	(8) DBeaver 접속
 		- Database : XE
 		- Username : hiw
-		- Password : 12345
+		- Password : 1234
 		
 		※ 혹시 DBeaver에서 로그인시 계정이 잠겨 있을 경우
 			-> 위의 (7) - 3) 까지 수행 후 ALTER USER hiw ACCOUNT UNLOCK; 실행
@@ -55,34 +55,42 @@
 		
 -------------------------------------------------------------------------------------------------------------------
 
-2. Rocky Linux 설치
-	
-	(1) docker desktop 띄워놓기
-	
-	(2) Rocky Linux 이미지 검색
+2. Rocky Linux 설치 (ssh 가능)
 
-		1) powershell 실행시키기
+	(1) Docker Desktop 띄워놓고 확인
+	
+	(2) 기본 Docker 이미지 찾기
+		docker search rockylinux
+
+	(2) Dockerfile 생성 (확장자X, 윈도우내 아무 폴더)
+		FROM rockylinux/rockylinux:latest
+
+		# 필요한 패키지 설치
+		RUN dnf -y update && dnf -y install openssh-server passwd
+
+		# SSH 호스트 키 생성
+		RUN ssh-keygen -A
+
+		# root 사용자 비밀번호 설정 (보안을 위해 변경 필요)
+		RUN echo 'root:admin123!' | chpasswd
+
+		# SSH 서버 설정 (필요에 따라 수정)
+		RUN sed -i 's/#PermitRootLogin yes/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+		# SSH 포트 노출
+		EXPOSE 22
+
+		# SSH 서버 실행
+		CMD ["/usr/sbin/sshd", "-D"]
+
+	(3) Docker 이미지 빌드
+		docker build -t rockylinux_ssh .
 		
-		2) Rocky Linux 찾기
-			docker search rockylinux
-			
-	(3) 원하는 이미지 다운로드
-		docker pull rockylinux/rockylinux
-			
-	(4) 다운로드된 이미지 확인
-		docker images
-			
-	(5) 이미지 실행시켜 컨테이너 설치 (Docker Desktop에서 확인)
-		docker run docker.io/rockylinux/rockylinux
-			
-	(6) 설치된 Linux 컨테이너에 진입
-		docker run -i -t docker.io/rockylinux/rockylinux /bin/bash
-			
-	(7) passwd 설치
-		계정생성 후 비번 설정시 passwd 미설치의 경우
-		sudo dnf install passwd
-	
-	(8) root 비번 재설정
-		root : admin123!
-		hiw : admin123!
+	(4) Docker 컨테이너 실행 (2222 포트 사용)
+		- 컨테이너의 22번 포트를 호스트의 2222번 포트에 매핑
+		
+		docker run -d -p 2222:22 --name rocky_ssh rockylinux_ssh
 
+	(5) SSH 및 SFTP로 컨테이너 접속
+		IP : localhost / 127.0.0.1
+		PORT : 2222
