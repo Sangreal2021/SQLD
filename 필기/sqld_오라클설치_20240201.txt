@@ -91,3 +91,6 @@
 	(5) SSH 및 SFTP로 컨테이너 접속
 		IP : localhost / 127.0.0.1
 		PORT : 2222
+		
+		<powershell>
+		ssh root@127.0.0.1 -p 2222
