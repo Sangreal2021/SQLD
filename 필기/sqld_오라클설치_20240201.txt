@@ -87,6 +87,9 @@
 		- 컨테이너의 22번 포트를 호스트의 2222번 포트에 매핑
 		
 		docker run -d -p 2222:22 --name rocky_ssh rockylinux_ssh
+		
+		※ 포트를 여러 개 동시에 사용하고자 할 때
+		docker run -d -p 2222:22 -p 2323:23 -p 2525:25 --name rocky_ssh rockylinux_ssh
 
 	(5) SSH 및 SFTP로 컨테이너 접속
 		IP : localhost / 127.0.0.1
