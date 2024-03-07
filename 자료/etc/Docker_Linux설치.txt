@@ -1,0 +1,119 @@
+1. Rocky Linux 설치 (ssh 가능)
+
+	(1) Docker Desktop 띄워놓고 확인
+	
+	(2) 기본 Docker 이미지 찾기
+		docker search rockylinux
+
+	(3) Dockerfile 생성 (확장자X, 윈도우내 아무 폴더)
+	
+		FROM rockylinux/rockylinux:latest
+
+		# 필요한 패키지 설치
+		RUN dnf -y update && dnf -y install openssh-server passwd
+
+		# SSH 호스트 키 생성
+		RUN ssh-keygen -A
+
+		# root 사용자 비밀번호 설정 (보안을 위해 변경 필요)
+		RUN echo 'root:admin123!' | chpasswd
+
+		# SSH 서버 설정 (필요에 따라 수정)
+		RUN sed -i 's/#PermitRootLogin yes/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+		# SSH 포트 노출
+		EXPOSE 22
+
+		# SSH 서버 실행
+		CMD ["/usr/sbin/sshd", "-D"]
+
+	(4) Docker 이미지 빌드 (Dockerfile이 위치한 폴더에서 powershell로)
+		docker build -t rockylinux_ssh .
+		
+	(5) Docker 컨테이너 실행 (2222 포트 사용)
+		- 컨테이너의 22번 포트를 호스트의 2222번 포트에 매핑
+		
+		docker run -d -p 2222:22 --name rocky_ssh rockylinux_ssh
+		
+		※ 포트를 여러 개 동시에 사용하고자 할 때
+		docker run -d -p 2222:22 -p 2323:23 -p 2525:25 --name rocky_ssh rockylinux_ssh
+
+	(6) SSH 및 SFTP로 컨테이너 접속
+		IP : localhost / 127.0.0.1
+		PORT : 2222
+		
+		<powershell>
+		ssh root@127.0.0.1 -p 2222
+
+2. CentOS 7 설치 (ssh 가능)
+
+	(1) Docker Desktop 띄워놓고 확인
+	
+	(2) 기본 Docker 이미지 찾기
+		docker search centos:7
+
+	(3) Dockerfile 생성 (확장자X, 윈도우내 아무 폴더)
+
+		# CentOS 7 공식 이미지 사용
+		FROM centos:7
+
+		# 필요한 패키지 설치, 여기서는 openssh-server와 sudo 패키지를 설치합니다.
+		RUN yum -y update && \
+			yum -y install openssh-server sudo && \
+			yum clean all
+
+		# SSH를 위한 기본 설정
+		# SSH 호스트 키 생성
+		RUN ssh-keygen -A
+
+		# root 사용자 비밀번호 설정
+		RUN echo 'root:admin123!' | chpasswd
+
+		# SSH 서버 설정 - 비밀번호 인증 허용
+		RUN sed -i 's/^#PermitRootLogin yes/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+			sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+		# SSH 포트 노출
+		EXPOSE 22
+
+		# SSH 서비스 시작
+		CMD ["/usr/sbin/sshd", "-D"]
+		
+	(4) Docker 이미지 빌드 (Dockerfile이 위치한 폴더에서 powershell로)
+		docker build -t centos7_ssh .
+		
+	(5) Docker 컨테이너 실행 (2222 포트 사용)
+		- 컨테이너의 22번 포트를 호스트의 2222번 포트에 매핑
+		
+		docker run -d -p 2222:22 --name cent7_ssh centos7_ssh
+		
+		※ 포트를 여러 개 동시에 사용하고자 할 때
+		docker run -d -p 2222:22 -p 2323:23 -p 2525:25 --name cent7_ssh centos7_ssh
+
+	(6) SSH 및 SFTP로 컨테이너 접속
+		IP : localhost / 127.0.0.1
+		PORT : 2222
+		
+		<powershell>
+		ssh root@127.0.0.1 -p 2222
+	
+	
+3. ssh 접속 및 sftp 접속 느릴 시
+
+	(1) sudo vi /etc/ssh/sshd_config 로 config파일 열기
+		1) 설정 변경: 파일 내에서 UseDNS 설정을 찾아 no로 설정합니다. 
+		   이 설정이 주석 처리되어 있거나 없다면, 파일의 맨 아래에 다음 라인을 추가합니다:
+		   $ UseDNS no
+
+		2) GSSAPI 설정 비활성화: 다음 두 설정을 no로 변경하거나, 설정이 없다면 추가합니다.
+			GSSAPIAuthentication no
+			GSSAPICleanupCredentials no
+			
+		3) 컨테이너 재시작
+		
+
+4. powershell로 가상머신 IP 찾기
+
+	(1) ipconfig 에서 이더넷 어댑터 vEthernet (WSL (Hyper-V firewall)): 부분의 IPv4 주소 확인
+	
+	(2) ssh 계정명@IPv4주소 -p 2222
