@@ -386,6 +386,8 @@ SELECT * FROM B;
 --	SELECT, PROJECT, JOIN, DIVIDE
 
 
+-- 07. (p.397)
+
 
 
 

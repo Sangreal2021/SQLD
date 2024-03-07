@@ -360,6 +360,8 @@ WHERE emp1.DEPTNO = dept1.DEPTNO AND emp1.DEPTNO = 10;
 --			(그래야 데이터가 스캔되는 범위를 줄일 수 있기 때문)
 --		- 내부 테이블(후행 테이블) 에 인덱스가 없으면 사용 X
 --		- RANDOM ACCESS가 많이 발생.(성능 저하)
+--		- 온라인 트랜잭션 처리(OLTP) 시스템에 적합. 
+
 SELECT /*+ ordered use_nl(b) */ * FROM emp1 a, dept1 b
 WHERE a.DEPTNO = b.DEPTNO AND a.DEPTNO = 10;
 

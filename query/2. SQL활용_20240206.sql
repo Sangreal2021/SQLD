@@ -6,7 +6,9 @@
 --		- 조인은 여러 개의 릴레이션을 사용해서 새로운 릴레이션을 만드는 과정
 --		- 조인의 기본은 교집합을 만드는 것
 --		- 2개의 테이블 간에 일치하는 것을 조인함
---		- 반드시 기본키, 외래키 관계에 의해서만 성립되는 것 아님(조인 칼럼 1:1 매핑 가능하면 사용가능)
+--		- 마스터 테이블과 슬레이브 테이블 간의 조인은 일반적으로 기본키와 외래키 사이에서 발생
+--			하지만 반드시 기본키, 외래키 관계에 의해서만 성립되는 것 아님
+--		-	(조인 칼럼 1:1 매핑 가능하면 사용가능)
 SELECT * FROM emp1, dept1
 WHERE emp1.DEPTNO = dept1.DEPTNO;
 
@@ -14,6 +16,8 @@ SELECT * FROM emp1, dept1
 WHERE emp1.DEPTNO = dept1.DEPTNO
 	AND emp1.ENAME LIKE '%S'
 ORDER BY ename;
+
+--	※ NON-EQUI Join은 ">", "<", ">=","<=" 를 사용
 
 ----------------------------------------------------------------------------------------------------------
 -- ※ 해시 조인(Hash Join)
@@ -81,6 +85,7 @@ ON emp1.DEPTNO = dept1.DEPTNO;
 
 --	(5) CROSS JOIN
 --		- 조인 조건구 없이 2개의 테이블을 하나로 조인
+--		- where절에 Join 조건을 추가할 수 있음
 --		- 조인구가 없어서 카테시안 곱이 발생(14 * 4 => 56개 행 조회)
 SELECT * FROM emp1 CROSS JOIN dept1;
 
@@ -167,6 +172,7 @@ FROM	emp3 e1 JOIN emp3 e2 ON e1.deptno = e2.deptno AND e1.empno != e2.empno;
 -- (9) 내츄럴 조인(NATURAL JOIN)
 --		- 두 테이블에서 동일한 칼럼 이름을 가지는 칼럼을 모두 조회
 --		- Alias를 사용할 수 없음
+--		- where절에서 Join 조건을 추가할 수 없음
 --	ex)
 SELECT empno, ename, deptno
 FROM emp3 NATURAL JOIN dept3;
