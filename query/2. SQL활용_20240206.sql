@@ -463,6 +463,14 @@ SELECT	ename,
 		ROW_NUMBER () OVER (ORDER BY sal DESC) AS "ROW_NUM"
 FROM	emp1;
 
+--		4) 순위 함수 비교
+SELECT	ename,
+		sal,
+		RANK() OVER (ORDER BY sal DESC) AS "RANK_FUNC",
+		DENSE_RANK() OVER (ORDER BY sal DESC) AS "DENSE_RANK",
+		ROW_NUMBER () OVER (ORDER BY sal DESC) AS "ROW_NUM"
+FROM	emp1;
+
 
 
 --	(3) 집계 함수(RANK Function)

@@ -354,13 +354,36 @@ FROM dept3 d LEFT JOIN emp3 e ON d.deptno = e.deptno
 WHERE e.deptno IS NULL;
 
 
--- (p.340)
+-- 38. (p.341)
+CREATE TABLE A 
+(
+	A number(10) PRIMARY KEY,
+	B number(10)
+);
+
+CREATE TABLE B
+(
+	A number(10),
+	B number(10) REFERENCES A(A)
+		ON DELETE CASCADE
+);
+
+INSERT INTO A VALUES (1, 1);
+INSERT INTO A VALUES (2, 2);
+
+INSERT INTO B VALUES (1, 1);
+INSERT INTO B VALUES (2, 2);
+
+SELECT * FROM A;
+SELECT * FROM B;
+
+DELETE FROM A WHERE A=1;
+SELECT * FROM B;
 
 
-
-
-
-
+-- 43. (p.343)
+-- 순수 관계 연산자
+--	SELECT, PROJECT, JOIN, DIVIDE
 
 
 
