@@ -459,8 +459,8 @@ FROM	emp1;
 --			- 동일한 순위에 대해 고유의 순위를 부여
 SELECT	ename,
 		sal,
-		RANK () OVER (ORDER BY sal DESC) AS "RANK_FUNC",
-		ROW_NUMBER () OVER (ORDER BY sal DESC) AS "ROW_NUM"
+		RANK() OVER (ORDER BY sal DESC) AS "RANK_FUNC",
+		ROW_NUMBER() OVER (ORDER BY sal DESC) AS "ROW_NUM"
 FROM	emp1;
 
 
