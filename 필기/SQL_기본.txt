@@ -31,29 +31,24 @@ CREATE TABLE alter01(
 );
 
 SELECT * FROM alter01;
-
 ALTER TABLE alter01 RENAME TO alter_ex;
 
 SELECT * FROM alter_ex;
 
 		2) 칼럼 추가
 ALTER TABLE alter_ex ADD (age NUMBER(3) DEFAULT 1);
-
 SELECT * FROM alter_ex;
 
 		3) 칼럼 변경
 ALTER TABLE alter_ex MODIFY (ename varchar2(40) NOT NULL);
-
 SELECT * FROM alter_ex;
 
 		4) 칼럼 삭제
 ALTER TABLE alter_ex DROP COLUMN age;
-
 SELECT * FROM alter_ex;
 
 		5) 칼럼명 변경
 ALTER TABLE alter_ex RENAME COLUMN ename TO pname;
-
 SELECT * FROM alter_ex;
 
 
@@ -288,17 +283,11 @@ WHEN NOT MATCHED THEN 절: emp_m 테이블에 일치하는 empno가 없을 경�
 			- 
 
 SELECT * FROM emp1;
-
 SELECT * FROM emp1 WHERE empno >= 1000 AND sal >= 1500;
-
 SELECT * FROM emp1 WHERE ename LIKE '%N';
-
 SELECT * FROM emp1 WHERE sal BETWEEN 1000 AND 2000;
-
 SELECT * FROM emp1 WHERE job IN ('CLERK', 'MANAGER');
-
 SELECT * FROM emp1 WHERE (job, ename) IN (('CLERK','SMITH'), ('MANAGER','BLAKE'));
-
 SELECT * FROM emp1 WHERE (job, ename) NOT IN (('CLERK','SMITH'), ('MANAGER','BLAKE'));
 
 ※ 기타 범위 조회
