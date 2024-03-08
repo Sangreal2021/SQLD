@@ -9,6 +9,7 @@
 		- 마스터 테이블과 슬레이브 테이블 간의 조인은 일반적으로 기본키와 외래키 사이에서 발생
 			하지만 반드시 기본키, 외래키 관계에 의해서만 성립되는 것 아님
 		-	(조인 칼럼 1:1 매핑 가능하면 사용가능)
+
 SELECT * FROM emp1, dept1
 WHERE emp1.DEPTNO = dept1.DEPTNO;
 
@@ -19,7 +20,7 @@ ORDER BY ename;
 
 	※ NON-EQUI Join은 ">", "<", ">=","<=" 를 사용
 
-
+------------------------------------------------------------------------------------------------------
 ※ 해시 조인(Hash Join)
 
 	- EQUI JOIN에서만 나타나는 실행계획.
@@ -43,8 +44,7 @@ ORDER BY ename;
 SELECT /*+ USE_HASH(e d) */ e.empno, e.ename, d.deptno, d.dname
 FROM emp1 e, dept1 d
 WHERE e.deptno = d.deptno;
-
-
+------------------------------------------------------------------------------------------------------
 
 	(2) INNER JOIN
 		- ISO 표준 SQL로 ON문을 사용해서 테이블을 연결
@@ -74,11 +74,13 @@ SELECT deptno FROM dept1;
 
 		1) LEFT OUTER JOIN
 			: 2개의 테이블에서 같은 것을 조회하고 왼쪽 테이블에만 있는 것을 포함해서 조회
+			
 SELECT * FROM dept1 LEFT OUTER JOIN emp1
 ON emp1.DEPTNO = dept1.DEPTNO;
 
 		2) RIGHT OUTER JOIN
 			: 2개의 테이블에서 같은 것을 조회하고 오른쪽 테이블에만 있는 것을 포함해서 조회
+			
 SELECT * FROM dept1 RIGHT OUTER JOIN emp1
 ON emp1.DEPTNO = dept1.DEPTNO;
 
@@ -87,6 +89,7 @@ ON emp1.DEPTNO = dept1.DEPTNO;
 		- 조인 조건구 없이 2개의 테이블을 하나로 조인
 		- where절에 Join 조건을 추가할 수 있음
 		- 조인구가 없어서 카테시안 곱이 발생(14 * 4 => 56개 행 조회)
+		
 SELECT * FROM emp1 CROSS JOIN dept1;
 
 SELECT * FROM emp1, dept1;
@@ -95,7 +98,8 @@ SELECT * FROM emp1, dept1;
 	(6) UNION을 사용한 합집합 구현
 		1) UNION
 			- 2개의 테이블을 하나로 만드는 연산
-			- 중복 데이터 제거 O, 정렬(sort) 과정을 발생 O
+			- 중복 데이터 제거 O, 정렬(sort) 과정 발생 O
+
 SELECT deptno FROM emp1
 UNION
 SELECT deptno FROM emp1;
@@ -104,6 +108,7 @@ SELECT deptno FROM emp1;
 			- 2개의 테이블을 하나로 만드는 연산
 			- 중복 데이터 제거 X, 정렬(sort) 과정을 발생 X
 			- 성능 측면에서 UNION 보다 우수함
+
 SELECT deptno FROM emp1
 UNION ALL
 SELECT deptno FROM emp1;
@@ -112,6 +117,7 @@ SELECT deptno FROM emp1;
 	(7) 차집합을 만드는 MINUS
 		- 먼저 쓴 SELECT문에는 있고 뒤에 쓰는 SELECT문에는 없는 집합을 조회
 		- MS-SQL에 EXCEPT 문과 동일
+		
 SELECT * FROM dept1;
 SELECT * FROM emp1;
 

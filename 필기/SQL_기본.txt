@@ -149,11 +149,12 @@ SELECT ename || ' 님' FROM emp1;
 		3) Index를 사용한 정렬 회피
 SELECT /*+ INDEX_DESC(A SAL) */ * FROM emp1 A;
 
-
+--------------------------------------------------------------------------------------------------------
 Q. 차은우, 카리나가 나오도록 UNION과 MAX 함수를 이용해서 출력
 
 	(1) '차은우'라는 문자열을 A 컬럼에, 빈 문자열('')을 B 컬럼에 할당
 SELECT '차은우' A, '' B FROM dual;
+
 	(2) 빈 문자열('')을 A 컬럼에, '카리나'라는 문자열을 B 컬럼에 할당
 SELECT '' A, '카리나' B FROM dual;
 
@@ -163,6 +164,7 @@ SELECT '' A, '카리나' B FROM dual;
 	(3) 위의 두 SELECT문을 UNION ALL 로 결합
 
 	(4) MAX(A) AS 남자베스트: A 컬럼의 최대값을 계산. 이 경우 '차은우'와 빈 문자열 중 '차은우'가 최대값.
+	
 	(5) MAX(B) AS 여자베스트: B 컬럼의 최대값을 계산. 이 경우 '카리나'와 빈 문자열 중 '카리나'가 최대값.
 SELECT	MAX(A) AS 남자베스트, MAX(B) AS 여자베스트
 FROM
@@ -173,7 +175,7 @@ FROM
 );
 
 SELECT '차은우' AS 남자, '카리나' AS 여자 FROM dual;
-
+--------------------------------------------------------------------------------------------------------
 
 		4) Distinct, Alias
 		- Distinct : 중복된 데이트를 한 번만 조회
@@ -376,6 +378,7 @@ SELECT * FROM emp1;
 	EMP 테이블에서 사원의 커미션(COMM)과 급여(SAL) 사용하기:
 		(급여는 존재하지만 COMM은 존재하지 않을 수 있으므로..)
 	사원의 커미션(COMM)이 NULL인 경우, 다음 인자인 '0'을 반환해서 급여(SAL)를 더해 총 수입을 계산하는 예시
+	
 SELECT EMPNO,
 ENAME,
 JOB,
@@ -392,6 +395,7 @@ DEPT 테이블과 EMP 테이블을 조인(LEFT JOIN)하여 부서명이 없는 �
 여기서 EMP1 테이블은 사원 정보를, DEPT1 테이블은 부서 정보를 담음.
 EMP1 테이블의 모든 행은 결과에 포함됩니다. 즉, 모든 사원 정보가 쿼리 결과에 출력.
 EMP1 테이블의 각 행에 대해, DEPTNO 컬럼을 사용하여 DEPT1 테이블의 DEPTNO 컬럼과 매칭을 시도.
+
 SELECT E1.empno,
 E1.deptno,
 E1.ename,
@@ -466,7 +470,7 @@ GROUP BY deptno;
 
 5. 명시적 형변환과 암시적 형변환
 	- 명시적 형변환 : SQL 개발자가 형변환 함수를 사용해서 형변환을 수행하는 것.
-	- 암시작 형변환 : SQL 개발자가 형변환을 수행하지 않았을 경우 DB 관리 시스템이
+	- 암시적 형변환 : SQL 개발자가 형변환을 수행하지 않았을 경우 DB 관리 시스템이
 		내부적으로 형변환을 수행.
 형변환 함수
 	(1) TO_NUMBER(문자열) : 문자열을 숫자로 변환
@@ -531,6 +535,7 @@ FROM DUAL;
 INTERVAL '123:45' - 123시간 45분의 지속기간
 즉, HOUR FROM INTERVAL '123:45' 는 5일 3시간 45분을 의미
 EXTRACT()로 시간을 추출하면 남는 3시간이 출력
+
 SELECT
 	CONCAT(EXTRACT(DAY FROM INTERVAL '123:45' HOUR TO MINUTE), ' 일') AS days,
 CONCAT(EXTRACT(HOUR FROM INTERVAL '123:45' HOUR TO MINUTE), ' 시간') AS hours,
@@ -546,6 +551,7 @@ FROM DUAL;
 		- FLOOR(숫자) : 내림, 숫자보다 작거나 같은 최대의 정수 반환
 		- ROUND(숫자, m) : 소수점 m자리가 되도록 반올림(m의 기본값은 0)
 		- TRUNC(숫자, m) : 소수점 m자리가 되도록 절삭(m의 기본값은 0)
+		
 SELECT	ABS(-1),
 		SIGN(10),
 		(5 / 2),
@@ -570,6 +576,7 @@ CREATE TABLE emp4 AS SELECT * FROM emp3;
 		- 일련의 작업을 수행하고, 필요에 따라 입력 파라미터를 받아 처리한 후 결과를 반환
 
 ex) 특정 부서(deptno)의 모든 사원의 급여를 일정 비율로 증가시키는 저장 프로시저
+
 CREATE OR REPLACE PROCEDURE RaiseSalaryByDept(
 p_deptno IN emp4.deptno%TYPE,
 p_percentage IN NUMBER
@@ -591,6 +598,7 @@ SELECT text FROM all_source WHERE name='RAISESALARYBYDEPT' AND TYPE='PROCEDURE' 
 		- 데이터의 무결성을 유지하거나, 감사 로깅, 자동화된 데이터 업데이트 등에 유용하게 사용
 
 ex) emp 테이블에 새로운 사원이 추가되거나 사원의 정보가 변경될 때, 변경 내용을 emp_audit 테이블에 기록하는 트리거
+
 CREATE OR REPLACE TRIGGER EMPAUDITTRIGGER
 AFTER INSERT OR UPDATE ON emp4
 FOR EACH ROW
@@ -610,9 +618,9 @@ END;
 
 emp_audit 테이블 생성
 CREATE TABLE emp_audit (
-emp_id NUMBER(4,0),       	-- emp4 테이블의 empno 컬럼과 동일한 타입으로 가정
-change_date TIMESTAMP,    		-- 변경이 발생한 날짜를 기록
-action_type VARCHAR2(20)	-- 수행된 작업의 유형 (예: 'INSERT', 'UPDATE')
+	emp_id NUMBER(4,0),       	-- emp4 테이블의 empno 컬럼과 동일한 타입으로 가정
+	change_date TIMESTAMP,    		-- 변경이 발생한 날짜를 기록
+	action_type VARCHAR2(20)	-- 수행된 작업의 유형 (예: 'INSERT', 'UPDATE')
 );
 
 TRUNCATE TABLE EMP_AUDIT;
