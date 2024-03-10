@@ -1,0 +1,41 @@
+프로젝트 터미널 선택 : alt + `
+터미널 열기 : ctrl + `
+
+[최초 연결시]
+1. git init
+
+2. git config --global user.name "유저 이름"
+
+3. git config --global user.email "가입할 때 사용한 메일 주소"
+
+4. git add . (git add 파일명)
+
+5. git commit -m "확인메세지"
+
+6. git branch -M main (git checkout 브랜치명)
+
+7. git remote add origin 복사한 링크
+
+8. git push -u origin main
+
+
+[자료 업로드/다운로드]
+1. git status
+
+5. git pull origin main (다운로드)
+
+8. git add .
+
+9. git commit -m "확인메세지"
+
+10. git push -u origin main (업로드)
+
+---------------------------------------------------------------------
+[기타 명령어]
+1. git reset : add 로 스테이징한 변경사항을 취소
+
+2. git log --since="5 hours ago" : 5시간 전 커밋 확인
+
+3. git reset --hard abc1234 : 5시간 전 내용으로 되돌리기
+
+4. git push origin main --force-with-lease : 충돌 해결 후 업로드
