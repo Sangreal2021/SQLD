@@ -69,9 +69,12 @@
 		# root 사용자 비밀번호 설정
 		RUN echo 'root:admin123!' | chpasswd
 
-		# SSH 서버 설정 - 비밀번호 인증 허용
+		# SSH 서버 설정 - 비밀번호 인증 허용 및 UseDNS와 GSSAPI 설정 비활성화
 		RUN sed -i 's/^#PermitRootLogin yes/PermitRootLogin yes/' /etc/ssh/sshd_config && \
-			sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+			sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+			echo "UseDNS no" >> /etc/ssh/sshd_config && \
+			echo "GSSAPIAuthentication no" >> /etc/ssh/sshd_config && \
+			echo "GSSAPICleanupCredentials no" >> /etc/ssh/sshd_config
 
 		# SSH 포트 노출
 		EXPOSE 22
@@ -98,7 +101,7 @@
 		ssh root@127.0.0.1 -p 2222
 	
 	
-3. ssh 접속 및 sftp 접속 느릴 시
+3. ssh 접속 및 sftp 접속 느릴 시 (위 Dockerfile에 포함됨)
 
 	(1) sudo vi /etc/ssh/sshd_config 로 config파일 열기
 		1) 설정 변경: 파일 내에서 UseDNS 설정을 찾아 no로 설정합니다. 
@@ -117,3 +120,14 @@
 	(1) ipconfig 에서 이더넷 어댑터 vEthernet (WSL (Hyper-V firewall)): 부분의 IPv4 주소 확인
 	
 	(2) ssh 계정명@IPv4주소 -p 2222
+
+	
+5. 위의 CentOS_7 이미지 파일 생성 후 3개의 서버 띄우기 (powershell)
+	
+	(1) 이미지 파일 생성
+		docker build -t my_centos_ssh .
+	
+	(2) 3개의 test 서버용 컨테이너 실행
+		docker run -d --name test_op -p 2222:22 my_centos_ssh
+		docker run -d --name test_dev -p 2223:22 my_centos_ssh
+		docker run -d --name test_relay -p 2224:22 my_centos_ssh
