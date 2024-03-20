@@ -131,3 +131,6 @@
 		docker run -d --name test_op -p 2222:22 my_centos_ssh
 		docker run -d --name test_dev -p 2223:22 my_centos_ssh
 		docker run -d --name test_relay -p 2224:22 my_centos_ssh
+
+6. 동시에 ssh 접속시 오류 발생 해결
+	- C:\Users\username\.ssh\ 에 known_hosts 내용 중 오류메세지 줄을 삭제
