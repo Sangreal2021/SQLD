@@ -1,0 +1,123 @@
+[한국교직원공제회 서버]
+- fileBackup 작업은 ★★★ 부분 4군데
+- file들은 snd로 보냄, 날짜디렉토리는 rcv로 보냄
+
+1. 운영계
+	
+	(1) Appian app 서버 (132와 133은 미러링)
+	
+		1) 10.45.18.132 (#1) - ★★★
+			appian / 
+			
+			- 구조
+			/home/appian_storage/FILE/ 아래 AUTO, BLOB, EDI 디렉토리
+				BLOB은 작업 제외
+				AUTO : EB, EI시리즈 및 날짜디렉토리
+				EDI : ktcu_시리즈 및 날짜디렉토리
+		
+		2) 10.45.18.133 (#2)
+		
+		3) 10.45.18.134 (#3)
+			- 예비
+		
+	(2) DB 서버
+	
+		1) 10.45.18.151 (#1)
+		
+		2) 10.45.18.152 (#2)
+		
+	(3) 중계 서버 (141과 142는 미러링)
+	
+		1) 10.45.18.141 (#1) - ★★★
+		
+			- 구조
+			/cBox/CBoxColl/coll_file/send_data/backup/ 아래 날짜디렉토리
+			
+			/kbedi/edi_file/ 아래 날짜디렉토리
+			
+			/kftcedi/auto_file/ 아래 rcv, snd 디렉토리
+				각각 날짜디렉토리
+		
+		2) 10.45.18.142 (#2)
+		
+2. 개발계
+
+	(1) Appian app 서버
+	
+		1) 10.45.17.11 - ★★★
+			appiandev / 
+			
+			- 구조
+			/home/appiandev/storage/FILE/ 아래 AUTO, EDI, BOLB 디렉토리
+				BLOB은 작업 제외
+				AUTO : EB, EI시리즈 및 날짜디렉토리
+				EDI : ktcu_시리즈 및 날짜디렉토리
+			
+	(2) DB 및 중계 서버
+		
+		1) 10.45.17.12 - ★★★
+		
+			- 구조
+			/cBox/CBoxColl/coll_file/send_data/backup/ 아래 날짜디렉토리
+			
+			/kbedi/edi_file/ 아래 날짜디렉토리
+			
+			/kftcedi/auto_file/ 아래 rcv, snd 디렉토리
+				각각 날짜디렉토리
+				
+----------------------------------------------------------------------------------------------
+@ 파일 백업 쉘 스크립트 대상 정리
+
+1. 운영 WAS [10.45.18.132 / 10.45.18.133] - 이중화 O / 미러링 O
+	- appian
+	
+   1. /home/appian_storage/FILE/AUTO
+		- appian
+      (1) 파일 : E* 시리즈   -> /home/appian_storage/FILE/AUTO/back_YYYY/snd
+      (2) 날짜디렉토리      -> /home/appian_storage/FILE/AUTO/back_YYYY/rcv
+   2. /home/appian_storage/FILE/EDI
+      (1) 파일 : ktcu* 시리즈   -> /home/appian_storage/FILE/AUTO/back_YYYY/snd
+      (2) 날짜디렉토리      -> /home/appian_storage/FILE/AUTO/back_YYYY/rcv
+
+2. 개발 WAS [10.45.17.11]
+	- appiandev
+	
+   1. /home/appiandev/storage/FILE/AUTO
+		- appiandev
+      (1) 파일 : E* 시리즈   -> /home/appian_storage/FILE/AUTO/back_YYYY/snd
+      (2) 날짜디렉토리      -> /home/appian_storage/FILE/AUTO/back_YYYY/rcv
+   2. /home/appiandev/storage/FILE/EDI
+      (1) 파일 : ktcu* 시리즈   -> /home/appian_storage/FILE/AUTO/back_YYYY/snd
+      (2) 날짜디렉토리      -> /home/appian_storage/FILE/AUTO/back_YYYY/rcv
+
+3. 운영 중계 [10.45.18.141 / 10.45.18.142] - 이중화 O / 미러링 ??
+	- iGate, kbedi
+
+   1. /cBox/CBoxColl/coll_file/send_data/backup/ 
+		- root
+      (1) 날짜디렉토리      -> /cBox/CBoxColl/coll_file/send_data/backup/back_YYYY
+   2. /kbedi/edi_file/ 
+		- kbedi
+      (1) 날짜디렉토리      -> /kbedi/edi_file/back_YYYY
+   3. /kftcedi/auto_file/rcv
+		- iGate
+      (1) 날짜디렉토리      ->/kftcedi/auto_file/rcv/back_YYYY
+   4. /kftcedi/auto_file/snd
+		- iGate
+      (1) 날짜디렉토리      -> /kftcedi/auto_file/snd/back_YYYY
+
+4. 개발 중계 [10.45.17.12]
+	- igate, kbedi
+
+   1. /cBox/CBoxColl/coll_file/send_data/backup/ 
+		- root
+      (1) 날짜디렉토리      -> /cBox/CBoxColl/coll_file/send_data/backup/back_YYYY
+   2. /kbedi/edi_file/ 
+		- kbedi
+      (1) 날짜디렉토리      -> /kbedi/edi_file/back_YYYY
+   3. /kftcedi/auto_file/rcv
+		- igate
+      (1) 날짜디렉토리      ->/kftcedi/auto_file/rcv/back_YYYY
+   4. /kftcedi/auto_file/snd
+		- igate
+      (1) 날짜디렉토리      -> /kftcedi/auto_file/snd/back_YYYY
